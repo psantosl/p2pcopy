@@ -14,12 +14,12 @@ namespace p2pcopy
 
             // https://gist.github.com/zziuni/3741933
 
-            STUN_Result result = STUN_Client.Query("stun.l.google.com", 19302, socket);
+            StunResult result = StunClient.Query("stun.l.google.com", 19302, socket);
             Console.WriteLine(result.NetType.ToString());
 
             Console.WriteLine(socket.LocalEndPoint.ToString());
 
-            if (result.NetType != STUN_NetType.UdpBlocked)
+            if (result.NetType != StunNetType.UdpBlocked)
             {
                 Console.WriteLine("Public endpoint: {0}. Local port: {1}",
                     result.PublicEndPoint.ToString(),
@@ -34,7 +34,7 @@ namespace p2pcopy
         /// <summary>
         /// This enum specifies STUN message type.
         /// </summary>
-        public enum STUN_MessageType
+        internal enum StunMessageType
         {
             /// <summary>
             /// STUN message is binding request.
@@ -70,17 +70,17 @@ namespace p2pcopy
         /// <summary>
         /// This class implements STUN ERROR-CODE. Defined in RFC 3489 11.2.9.
         /// </summary>
-        public class STUN_t_ErrorCode
+        internal class STUN_t_ErrorCode
         {
-            private int m_Code = 0;
-            private string m_ReasonText = "";
+            int m_Code = 0;
+            string m_ReasonText = "";
 
             /// <summary>
             /// Default constructor.
             /// </summary>
             /// <param name="code">Error code.</param>
             /// <param name="reasonText">Reason text.</param>
-            public STUN_t_ErrorCode(int code, string reasonText)
+            internal STUN_t_ErrorCode(int code, string reasonText)
             {
                 m_Code = code;
                 m_ReasonText = reasonText;
@@ -92,7 +92,7 @@ namespace p2pcopy
             /// <summary>
             /// Gets or sets error code.
             /// </summary>
-            public int Code
+            internal int Code
             {
                 get { return m_Code; }
 
@@ -102,7 +102,7 @@ namespace p2pcopy
             /// <summary>
             /// Gets reason text.
             /// </summary>
-            public string ReasonText
+            internal string ReasonText
             {
                 get { return m_ReasonText; }
 
@@ -116,36 +116,29 @@ namespace p2pcopy
         /// <summary>
         /// This class implements STUN CHANGE-REQUEST attribute. Defined in RFC 3489 11.2.4.
         /// </summary>
-        public class STUN_t_ChangeRequest
+        internal class StunChangeRequest
         {
-            private bool m_ChangeIP = true;
-            private bool m_ChangePort = true;
+            bool m_ChangeIP = true;
+            bool m_ChangePort = true;
 
             /// <summary>
             /// Default constructor.
             /// </summary>
-            public STUN_t_ChangeRequest()
-            {
-            }
-
-            /// <summary>
-            /// Default constructor.
-            /// </summary>
-            /// <param name="changeIP">Specifies if STUN server must send response to different IP than request was received.</param>
-            /// <param name="changePort">Specifies if STUN server must send response to different port than request was received.</param>
-            public STUN_t_ChangeRequest(bool changeIP, bool changePort)
+            /// <param name="changeIP">Specifies if STUN server must
+            /// send response to different IP than request was received.</param>
+            /// <param name="changePort">Specifies if STUN server must
+            /// send response to different port than request was received.</param>
+            internal StunChangeRequest(bool changeIP, bool changePort)
             {
                 m_ChangeIP = changeIP;
                 m_ChangePort = changePort;
             }
 
-
-            #region Properties Implementation
-
             /// <summary>
-            /// Gets or sets if STUN server must send response to different IP than request was received.
+            /// Gets or sets if STUN server must send response
+            /// to different IP than request was received.
             /// </summary>
-            public bool ChangeIP
+            internal bool ChangeIP
             {
                 get { return m_ChangeIP; }
 
@@ -153,30 +146,26 @@ namespace p2pcopy
             }
 
             /// <summary>
-            /// Gets or sets if STUN server must send response to different port than request was received.
+            /// Gets or sets if STUN server must send response
+            /// to different port than request was received.
             /// </summary>
-            public bool ChangePort
+            internal bool ChangePort
             {
                 get { return m_ChangePort; }
 
                 set { m_ChangePort = value; }
             }
-
-            #endregion
-
         }
 
         /// <summary>
         /// Implements STUN message. Defined in RFC 3489.
         /// </summary>
-        public class STUN_Message
+        internal class StunMessage
         {
-            #region enum AttributeType
-
             /// <summary>
             /// Specifies STUN attribute type.
             /// </summary>
-            private enum AttributeType
+            enum AttributeType
             {
                 MappedAddress = 0x0001,
                 ResponseAddress = 0x0002,
@@ -194,50 +183,42 @@ namespace p2pcopy
                 ServerName = 0x8022,
             }
 
-            #endregion
-
-            #region enum IPFamily
-
             /// <summary>
             /// Specifies IP address family.
             /// </summary>
-            private enum IPFamily
+            enum IPFamily
             {
                 IPv4 = 0x01,
                 IPv6 = 0x02,
             }
 
-            #endregion
-
-            private STUN_MessageType m_Type = STUN_MessageType.BindingRequest;
-            private Guid m_pTransactionID = Guid.Empty;
-            private IPEndPoint m_pMappedAddress = null;
-            private IPEndPoint m_pResponseAddress = null;
-            private STUN_t_ChangeRequest m_pChangeRequest = null;
-            private IPEndPoint m_pSourceAddress = null;
-            private IPEndPoint m_pChangedAddress = null;
-            private string m_UserName = null;
-            private string m_Password = null;
-            private STUN_t_ErrorCode m_pErrorCode = null;
-            private IPEndPoint m_pReflectedFrom = null;
-            private string m_ServerName = null;
+            StunMessageType m_Type = StunMessageType.BindingRequest;
+            Guid m_pTransactionID = Guid.Empty;
+            IPEndPoint m_pMappedAddress = null;
+            IPEndPoint m_pResponseAddress = null;
+            StunChangeRequest m_pChangeRequest = null;
+            IPEndPoint m_pSourceAddress = null;
+            IPEndPoint m_pChangedAddress = null;
+            string m_UserName = null;
+            string m_Password = null;
+            STUN_t_ErrorCode m_pErrorCode = null;
+            IPEndPoint m_pReflectedFrom = null;
+            string m_ServerName = null;
 
             /// <summary>
             /// Default constructor.
             /// </summary>
-            public STUN_Message()
+            internal StunMessage()
             {
                 m_pTransactionID = Guid.NewGuid();
             }
 
 
-            #region method Parse
-
             /// <summary>
             /// Parses STUN message from raw data packet.
             /// </summary>
             /// <param name="data">Raw STUN message.</param>
-            public void Parse(byte[] data)
+            internal void Parse(byte[] data)
             {
                 /* RFC 3489 11.1.             
                     All STUN messages consist of a 20 byte header:
@@ -271,29 +252,29 @@ namespace p2pcopy
 
                 // STUN Message Type
                 int messageType = (data[offset++] << 8 | data[offset++]);
-                if (messageType == (int)STUN_MessageType.BindingErrorResponse)
+                if (messageType == (int)StunMessageType.BindingErrorResponse)
                 {
-                    m_Type = STUN_MessageType.BindingErrorResponse;
+                    m_Type = StunMessageType.BindingErrorResponse;
                 }
-                else if (messageType == (int)STUN_MessageType.BindingRequest)
+                else if (messageType == (int)StunMessageType.BindingRequest)
                 {
-                    m_Type = STUN_MessageType.BindingRequest;
+                    m_Type = StunMessageType.BindingRequest;
                 }
-                else if (messageType == (int)STUN_MessageType.BindingResponse)
+                else if (messageType == (int)StunMessageType.BindingResponse)
                 {
-                    m_Type = STUN_MessageType.BindingResponse;
+                    m_Type = StunMessageType.BindingResponse;
                 }
-                else if (messageType == (int)STUN_MessageType.SharedSecretErrorResponse)
+                else if (messageType == (int)StunMessageType.SharedSecretErrorResponse)
                 {
-                    m_Type = STUN_MessageType.SharedSecretErrorResponse;
+                    m_Type = StunMessageType.SharedSecretErrorResponse;
                 }
-                else if (messageType == (int)STUN_MessageType.SharedSecretRequest)
+                else if (messageType == (int)StunMessageType.SharedSecretRequest)
                 {
-                    m_Type = STUN_MessageType.SharedSecretRequest;
+                    m_Type = StunMessageType.SharedSecretRequest;
                 }
-                else if (messageType == (int)STUN_MessageType.SharedSecretResponse)
+                else if (messageType == (int)StunMessageType.SharedSecretResponse)
                 {
-                    m_Type = STUN_MessageType.SharedSecretResponse;
+                    m_Type = StunMessageType.SharedSecretResponse;
                 }
                 else
                 {
@@ -316,15 +297,11 @@ namespace p2pcopy
                 }
             }
 
-            #endregion
-
-            #region method ToByteData
-
             /// <summary>
             /// Converts this to raw STUN packet.
             /// </summary>
             /// <returns>Returns raw STUN packet.</returns>
-            public byte[] ToByteData()
+            internal byte[] ToByteData()
             {
                 /* RFC 3489 11.1.             
                     All STUN messages consist of a 20 byte header:
@@ -507,17 +484,12 @@ namespace p2pcopy
                 return retVal;
             }
 
-            #endregion
-
-
-            #region method ParseAttribute
-
             /// <summary>
             /// Parses attribute from data.
             /// </summary>
             /// <param name="data">SIP message data.</param>
             /// <param name="offset">Offset in data.</param>
-            private void ParseAttribute(byte[] data, ref int offset)
+            void ParseAttribute(byte[] data, ref int offset)
             {
                 /* RFC 3489 11.2.
                     Each attribute is TLV encoded, with a 16 bit type, 16 bit length, and variable value:
@@ -576,7 +548,7 @@ namespace p2pcopy
                     // Skip 3 bytes
                     offset += 3;
 
-                    m_pChangeRequest = new STUN_t_ChangeRequest((data[offset] & 4) != 0, (data[offset] & 2) != 0);
+                    m_pChangeRequest = new StunChangeRequest((data[offset] & 4) != 0, (data[offset] & 2) != 0);
                     offset++;
                 }
                 // SOURCE-ADDRESS
@@ -649,17 +621,13 @@ namespace p2pcopy
                 }
             }
 
-            #endregion
-
-            #region method ParseEndPoint
-
             /// <summary>
             /// Pasrses IP endpoint attribute.
             /// </summary>
             /// <param name="data">STUN message data.</param>
             /// <param name="offset">Offset in data.</param>
             /// <returns>Returns parsed IP end point.</returns>
-            private IPEndPoint ParseEndPoint(byte[] data, ref int offset)
+            IPEndPoint ParseEndPoint(byte[] data, ref int offset)
             {
                 /*
                     It consists of an eight bit address family, and a sixteen bit
@@ -691,10 +659,6 @@ namespace p2pcopy
                 return new IPEndPoint(new IPAddress(ip), port);
             }
 
-            #endregion
-
-            #region method StoreEndPoint
-
             /// <summary>
             /// Stores ip end point attribute to buffer.
             /// </summary>
@@ -702,7 +666,7 @@ namespace p2pcopy
             /// <param name="endPoint">IP end point.</param>
             /// <param name="message">Buffer where to store.</param>
             /// <param name="offset">Offset in buffer.</param>
-            private void StoreEndPoint(AttributeType type, IPEndPoint endPoint, byte[] message, ref int offset)
+            void StoreEndPoint(AttributeType type, IPEndPoint endPoint, byte[] message, ref int offset)
             {
                 /*
                     It consists of an eight bit address family, and a sixteen bit
@@ -738,15 +702,10 @@ namespace p2pcopy
                 message[offset++] = ipBytes[0];
             }
 
-            #endregion
-
-
-            #region Properties Implementation
-
             /// <summary>
             /// Gets STUN message type.
             /// </summary>
-            public STUN_MessageType Type
+            internal StunMessageType Type
             {
                 get { return m_Type; }
 
@@ -756,7 +715,7 @@ namespace p2pcopy
             /// <summary>
             /// Gets transaction ID.
             /// </summary>
-            public Guid TransactionID
+            internal Guid TransactionID
             {
                 get { return m_pTransactionID; }
             }
@@ -764,7 +723,7 @@ namespace p2pcopy
             /// <summary>
             /// Gets or sets IP end point what was actually connected to STUN server. Returns null if not specified.
             /// </summary>
-            public IPEndPoint MappedAddress
+            internal IPEndPoint MappedAddress
             {
                 get { return m_pMappedAddress; }
 
@@ -775,7 +734,7 @@ namespace p2pcopy
             /// Gets or sets IP end point where to STUN client likes to receive response.
             /// Value null means not specified.
             /// </summary>
-            public IPEndPoint ResponseAddress
+            internal IPEndPoint ResponseAddress
             {
                 get { return m_pResponseAddress; }
 
@@ -786,7 +745,7 @@ namespace p2pcopy
             /// Gets or sets how and where STUN server must send response back to STUN client.
             /// Value null means not specified.
             /// </summary>
-            public STUN_t_ChangeRequest ChangeRequest
+            internal StunChangeRequest ChangeRequest
             {
                 get { return m_pChangeRequest; }
 
@@ -797,7 +756,7 @@ namespace p2pcopy
             /// Gets or sets STUN server IP end point what sent response to STUN client. Value null
             /// means not specified.
             /// </summary>
-            public IPEndPoint SourceAddress
+            internal IPEndPoint SourceAddress
             {
                 get { return m_pSourceAddress; }
 
@@ -808,7 +767,7 @@ namespace p2pcopy
             /// Gets or sets IP end point where STUN server will send response back to STUN client 
             /// if the "change IP" and "change port" flags had been set in the ChangeRequest.
             /// </summary>
-            public IPEndPoint ChangedAddress
+            internal IPEndPoint ChangedAddress
             {
                 get { return m_pChangedAddress; }
 
@@ -818,7 +777,7 @@ namespace p2pcopy
             /// <summary>
             /// Gets or sets user name. Value null means not specified.
             /// </summary>          
-            public string UserName
+            internal string UserName
             {
                 get { return m_UserName; }
 
@@ -828,19 +787,19 @@ namespace p2pcopy
             /// <summary>
             /// Gets or sets password. Value null means not specified.
             /// </summary>
-            public string Password
+            internal string Password
             {
                 get { return m_Password; }
 
                 set { m_Password = value; }
             }
 
-            //public MessageIntegrity
+            //internal MessageIntegrity
 
             /// <summary>
             /// Gets or sets error info. Returns null if not specified.
             /// </summary>
-            public STUN_t_ErrorCode ErrorCode
+            internal STUN_t_ErrorCode ErrorCode
             {
                 get { return m_pErrorCode; }
 
@@ -852,25 +811,12 @@ namespace p2pcopy
             /// Gets or sets IP endpoint from which IP end point STUN server got STUN client request.
             /// Value null means not specified.
             /// </summary>
-            public IPEndPoint ReflectedFrom
+            internal IPEndPoint ReflectedFrom
             {
                 get { return m_pReflectedFrom; }
 
                 set { m_pReflectedFrom = value; }
             }
-
-            /// <summary>
-            /// Gets or sets server name.
-            /// </summary>
-            public string ServerName
-            {
-                get { return m_ServerName; }
-
-                set { m_ServerName = value; }
-            }
-
-            #endregion
-
         }
 
         /// <summary>
@@ -893,7 +839,7 @@ namespace p2pcopy
         /// }
         /// </code>
         /// </example>
-        public class STUN_Client
+        internal class StunClient
         {
             #region static method Query
 
@@ -905,7 +851,7 @@ namespace p2pcopy
             /// <param name="socket">UDP socket to use.</param>
             /// <returns>Returns UDP netwrok info.</returns>
             /// <exception cref="Exception">Throws exception if unexpected error happens.</exception>
-            public static STUN_Result Query(string host, int port, Socket socket)
+            internal static StunResult Query(string host, int port, Socket socket)
             {
                 if (host == null)
                 {
@@ -985,45 +931,45 @@ namespace p2pcopy
                 */
 
                 // Test I
-                STUN_Message test1 = new STUN_Message();
-                test1.Type = STUN_MessageType.BindingRequest;
-                STUN_Message test1response = DoTransaction(test1, socket, remoteEndPoint);
+                StunMessage test1 = new StunMessage();
+                test1.Type = StunMessageType.BindingRequest;
+                StunMessage test1response = DoTransaction(test1, socket, remoteEndPoint);
 
                 // UDP blocked.
                 if (test1response == null)
                 {
-                    return new STUN_Result(STUN_NetType.UdpBlocked, null);
+                    return new StunResult(StunNetType.UdpBlocked, null);
                 }
                 else
                 {
                     // Test II
-                    STUN_Message test2 = new STUN_Message();
-                    test2.Type = STUN_MessageType.BindingRequest;
-                    test2.ChangeRequest = new STUN_t_ChangeRequest(true, true);
+                    StunMessage test2 = new StunMessage();
+                    test2.Type = StunMessageType.BindingRequest;
+                    test2.ChangeRequest = new StunChangeRequest(true, true);
 
                     // No NAT.
                     if (socket.LocalEndPoint.Equals(test1response.MappedAddress))
                     {
-                        STUN_Message test2Response = DoTransaction(test2, socket, remoteEndPoint);
+                        StunMessage test2Response = DoTransaction(test2, socket, remoteEndPoint);
                         // Open Internet.
                         if (test2Response != null)
                         {
-                            return new STUN_Result(STUN_NetType.OpenInternet, test1response.MappedAddress);
+                            return new StunResult(StunNetType.OpenInternet, test1response.MappedAddress);
                         }
                         // Symmetric UDP firewall.
                         else
                         {
-                            return new STUN_Result(STUN_NetType.SymmetricUdpFirewall, test1response.MappedAddress);
+                            return new StunResult(StunNetType.SymmetricUdpFirewall, test1response.MappedAddress);
                         }
                     }
                     // NAT
                     else
                     {
-                        STUN_Message test2Response = DoTransaction(test2, socket, remoteEndPoint);
+                        StunMessage test2Response = DoTransaction(test2, socket, remoteEndPoint);
                         // Full cone NAT.
                         if (test2Response != null)
                         {
-                            return new STUN_Result(STUN_NetType.FullCone, test1response.MappedAddress);
+                            return new StunResult(StunNetType.FullCone, test1response.MappedAddress);
                         }
                         else
                         {
@@ -1033,10 +979,10 @@ namespace p2pcopy
                             */
 
                             // Test I(II)
-                            STUN_Message test12 = new STUN_Message();
-                            test12.Type = STUN_MessageType.BindingRequest;
+                            StunMessage test12 = new StunMessage();
+                            test12.Type = StunMessageType.BindingRequest;
 
-                            STUN_Message test12Response = DoTransaction(test12, socket, test1response.ChangedAddress);
+                            StunMessage test12Response = DoTransaction(test12, socket, test1response.ChangedAddress);
                             if (test12Response == null)
                             {
                                 throw new Exception("STUN Test I(II) dind't get resonse !");
@@ -1046,73 +992,31 @@ namespace p2pcopy
                                 // Symmetric NAT
                                 if (!test12Response.MappedAddress.Equals(test1response.MappedAddress))
                                 {
-                                    return new STUN_Result(STUN_NetType.Symmetric, test1response.MappedAddress);
+                                    return new StunResult(StunNetType.Symmetric, test1response.MappedAddress);
                                 }
                                 else
                                 {
                                     // Test III
-                                    STUN_Message test3 = new STUN_Message();
-                                    test3.Type = STUN_MessageType.BindingRequest;
-                                    test3.ChangeRequest = new STUN_t_ChangeRequest(false, true);
+                                    StunMessage test3 = new StunMessage();
+                                    test3.Type = StunMessageType.BindingRequest;
+                                    test3.ChangeRequest = new StunChangeRequest(false, true);
 
-                                    STUN_Message test3Response = DoTransaction(test3, socket, test1response.ChangedAddress);
+                                    StunMessage test3Response = DoTransaction(test3, socket, test1response.ChangedAddress);
                                     // Restricted
                                     if (test3Response != null)
                                     {
-                                        return new STUN_Result(STUN_NetType.RestrictedCone, test1response.MappedAddress);
+                                        return new StunResult(StunNetType.RestrictedCone, test1response.MappedAddress);
                                     }
                                     // Port restricted
                                     else
                                     {
-                                        return new STUN_Result(STUN_NetType.PortRestrictedCone, test1response.MappedAddress);
+                                        return new StunResult(StunNetType.PortRestrictedCone, test1response.MappedAddress);
                                     }
                                 }
                             }
                         }
                     }
                 }
-            }
-
-            #endregion
-
-
-            #region method GetSharedSecret
-
-            private void GetSharedSecret()
-            {
-                /*
-                    *) Open TLS connection to STUN server.
-                    *) Send Shared Secret request.
-                */
-
-                /*
-                using(SocketEx socket = new SocketEx()){
-                    socket.RawSocket.ReceiveTimeout = 5000;
-                    socket.RawSocket.SendTimeout = 5000;
-
-                    socket.Connect(host,port);
-                    socket.SwitchToSSL_AsClient();                
-
-                    // Send Shared Secret request.
-                    STUN_Message sharedSecretRequest = new STUN_Message();
-                    sharedSecretRequest.Type = STUN_MessageType.SharedSecretRequest;
-                    socket.Write(sharedSecretRequest.ToByteData());
-                
-                    // TODO: Parse message
-
-                    // We must get  "Shared Secret" or "Shared Secret Error" response.
-
-                    byte[] receiveBuffer = new byte[256];
-                    socket.RawSocket.Receive(receiveBuffer);
-
-                    STUN_Message sharedSecretRequestResponse = new STUN_Message();
-                    if(sharedSecretRequestResponse.Type == STUN_MessageType.SharedSecretResponse){
-                    }
-                    // Shared Secret Error or Unknown response, just try again.
-                    else{
-                        // TODO: Unknown response
-                    }
-                }*/
             }
 
             #endregion
@@ -1126,7 +1030,7 @@ namespace p2pcopy
             /// <param name="socket">Socket to use for send/receive.</param>
             /// <param name="remoteEndPoint">Remote end point.</param>
             /// <returns>Returns transaction response or null if transaction failed.</returns>
-            private static STUN_Message DoTransaction(STUN_Message request, Socket socket, IPEndPoint remoteEndPoint)
+            static StunMessage DoTransaction(StunMessage request, Socket socket, IPEndPoint remoteEndPoint)
             {
                 byte[] requestBytes = request.ToByteData();
                 DateTime startTime = DateTime.Now;
@@ -1144,7 +1048,7 @@ namespace p2pcopy
                             socket.Receive(receiveBuffer);
 
                             // Parse message
-                            STUN_Message response = new STUN_Message();
+                            StunMessage response = new StunMessage();
                             response.Parse(receiveBuffer);
 
                             // Check that transaction ID matches or not response what we want.
@@ -1166,17 +1070,17 @@ namespace p2pcopy
 
         }
 
-        public class STUN_Result
+        internal class StunResult
         {
-            private STUN_NetType m_NetType = STUN_NetType.OpenInternet;
-            private IPEndPoint m_pPublicEndPoint = null;
+            StunNetType m_NetType = StunNetType.OpenInternet;
+            IPEndPoint m_pPublicEndPoint = null;
 
             /// <summary>
             /// Default constructor.
             /// </summary>
             /// <param name="netType">Specifies UDP network type.</param>
             /// <param name="publicEndPoint">Public IP end point.</param>
-            public STUN_Result(STUN_NetType netType, IPEndPoint publicEndPoint)
+            internal StunResult(StunNetType netType, IPEndPoint publicEndPoint)
             {
                 m_NetType = netType;
                 m_pPublicEndPoint = publicEndPoint;
@@ -1188,27 +1092,26 @@ namespace p2pcopy
             /// <summary>
             /// Gets UDP network type.
             /// </summary>
-            public STUN_NetType NetType
+            internal StunNetType NetType
             {
                 get { return m_NetType; }
             }
 
             /// <summary>
-            /// Gets public IP end point. This value is null if failed to get network type.
+            /// Gets internal IP end point. This value is null if failed to get network type.
             /// </summary>
-            public IPEndPoint PublicEndPoint
+            internal IPEndPoint PublicEndPoint
             {
                 get { return m_pPublicEndPoint; }
             }
 
             #endregion
-
         }
 
         /// <summary>
         /// Specifies UDP network type.
         /// </summary>
-        public enum STUN_NetType
+        internal enum StunNetType
         {
             /// <summary>
             /// UDP is always blocked.
@@ -1216,12 +1119,12 @@ namespace p2pcopy
             UdpBlocked,
 
             /// <summary>
-            /// No NAT, public IP, no firewall.
+            /// No NAT, internal IP, no firewall.
             /// </summary>
             OpenInternet,
 
             /// <summary>
-            /// No NAT, public IP, but symmetric UDP firewall.
+            /// No NAT, internal IP, but symmetric UDP firewall.
             /// </summary>
             SymmetricUdpFirewall,
 
