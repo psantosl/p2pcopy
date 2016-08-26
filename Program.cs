@@ -17,40 +17,67 @@ namespace p2pcopy
                 return;
             }
 
-            P2pEndPoint p2pEndPoint = GetExternalEndPoint();
-
-            if (p2pEndPoint == null)
-                return;
-
-            Console.WriteLine("Tell this to your peer: {0}", p2pEndPoint.External.ToString());
-
-            Console.WriteLine();
-            Console.WriteLine();
-
-            Console.Write("Enter the ip:port of your peer: ");
-            string peer = Console.ReadLine();
-
             string remoteIp;
             int remotePort;
+            int localPort;
 
-            ParseRemoteAddr(peer, out remoteIp, out remotePort);
+            if (cla.RemotePeer != null && cla.LocalPort != -1)
+            {
+                Console.WriteLine("Using passed remote peer and local port");
+
+                ParseRemoteAddr(cla.RemotePeer, out remoteIp, out remotePort);
+
+                localPort = cla.LocalPort;
+            }
+            else
+            {
+                P2pEndPoint p2pEndPoint = GetExternalEndPoint(0);
+
+                if (p2pEndPoint == null)
+                    return;
+
+                Console.WriteLine("Tell this to your peer: {0}", p2pEndPoint.External.ToString());
+
+                Console.WriteLine();
+                Console.WriteLine();
+
+                Console.Write("Enter the ip:port of your peer: ");
+                string peer = Console.ReadLine();
+
+                if (string.IsNullOrEmpty(peer))
+                {
+                    Console.WriteLine("Invalid ip:port entered");
+                    return;
+                }
+
+                ParseRemoteAddr(peer, out remoteIp, out remotePort);
+
+                localPort = p2pEndPoint.Internal.Port;
+            }
 
             Udt.Socket connection = PeerConnect(
-                p2pEndPoint.Internal.Port, remoteIp, remotePort);
+                localPort, remoteIp, remotePort);
 
             if (connection == null)
             {
-                Console.WriteLine("Failed to establish P2P conn to {0}", peer);
+                Console.WriteLine("Failed to establish P2P conn to {0}", remoteIp);
                 return;
             }
 
-            if (args[0] == "sender")
+            try
             {
-                RunSender(connection, cla.File);
-                return;
-            }
+                if (args[0] == "sender")
+                {
+                    RunSender(connection, cla.File);
+                    return;
+                }
 
-            RunReceiver(connection);
+                RunReceiver(connection);
+            }
+            finally
+            {
+                connection.Close();
+            }
         }
 
         class CommandLineArguments
@@ -60,6 +87,10 @@ namespace p2pcopy
             internal bool Receiver = false;
 
             internal string File;
+
+            internal int LocalPort = -1;
+
+            internal string RemotePeer = null;
 
             static internal CommandLineArguments Parse(string[] args)
             {
@@ -83,6 +114,14 @@ namespace p2pcopy
                             if (args.Length == i) return null;
                             result.File = args[i++];
                             break;
+                        case "--localport":
+                            if (args.Length == i) return null;
+                            result.LocalPort = int.Parse(args[i++]);
+                            break;
+                        case "--remotepeer":
+                            if (args.Length == i) return null;
+                            result.RemotePeer = args[i++];
+                            break;
                         case "help":
                             return null;
                     }
@@ -99,9 +138,12 @@ namespace p2pcopy
 
         static void RunSender(Udt.Socket conn, string file)
         {
+            int ini = Environment.TickCount;
+
             using (Udt.NetworkStream netStream = new Udt.NetworkStream(conn))
             using (BinaryWriter writer = new BinaryWriter(netStream))
-            using (FileStream reader = new FileStream(file, FileMode.Open, FileAccess.Read))
+            using (BinaryReader reader = new BinaryReader(netStream))
+            using (FileStream fileReader = new FileStream(file, FileMode.Open, FileAccess.Read))
             {
                 long fileSize = new FileInfo(file).Length;
 
@@ -114,7 +156,7 @@ namespace p2pcopy
 
                 int i = 0;
 
-                DrawProgress(i++, pos, fileSize, 20);
+                DrawProgress(i++, pos, fileSize, ini, Console.WindowWidth / 2);
 
                 while (pos < fileSize)
                 {
@@ -122,44 +164,40 @@ namespace p2pcopy
                         ? buffer.Length
                         : (int) (fileSize - pos);
 
-                    reader.Read(buffer, 0, toSend);
+                    fileReader.Read(buffer, 0, toSend);
 
+                    writer.Write(toSend);
                     writer.Write(buffer, 0, toSend);
+
+                    if (reader.ReadString() != "OK")
+                    {
+                        Console.WriteLine("Error in transmission");
+                        return;
+                    }
 
                     pos += toSend;
 
-                    DrawProgress(i++, pos, fileSize, 20);
+                    DrawProgress(i++, pos, fileSize, ini, Console.WindowWidth / 2);
                 }
             }
         }
 
-        static void DrawProgress(int i, long transferred, long total, int width)
-        {
-            Console.Write("\r");
-
-            char[] progress = new char[] { '-', '\\', '|', '/' };
-
-            Console.Write(progress[i % 4]);
-
-            int fillPos = (int)(((float)transferred) / ((float)total)) * width;
-            string filled = new string('#', fillPos);
-            string empty = new string('-', width - fillPos);
-            Console.Write("[" + filled + empty + "]");
-        }
-
         static void RunReceiver(Udt.Socket conn)
         {
+            int ini = Environment.TickCount;
+
             using (Udt.NetworkStream netStream = new Udt.NetworkStream(conn))
+            using (BinaryWriter writer = new BinaryWriter(netStream))
             using (BinaryReader reader = new BinaryReader(netStream))
             {
                 string fileName = reader.ReadString();
                 long size = reader.ReadInt64();
 
-                byte[] buffer = new byte[512 + 1024];
+                byte[] buffer = new byte[4 * 1024 * 1024];
 
                 int i = 0;
 
-                DrawProgress(i++, 0, size, 20);
+                DrawProgress(i++, 0, size, ini, Console.WindowWidth / 2);
 
                 using (FileStream fileStream = new FileStream(fileName, FileMode.Create))
                 {
@@ -167,16 +205,65 @@ namespace p2pcopy
 
                     while (read < size)
                     {
-                        int fragmentRead = reader.Read(buffer, 0, buffer.Length);
+                        int toRecv = reader.ReadInt32();
 
-                        fileStream.Write(buffer, 0, fragmentRead);
+                        ReadFragment(reader, toRecv, buffer);
 
-                        read += fragmentRead;
+                        fileStream.Write(buffer, 0, toRecv);
 
-                        DrawProgress(i++, read, size, 20);
+                        read += toRecv;
+
+                        writer.Write("OK");
+
+                        DrawProgress(i++, read, size, ini, Console.WindowWidth / 2);
                     }
                 }
             }
+        }
+
+        static int ReadFragment(BinaryReader reader, int size, byte[] buffer)
+        {
+            int read = 0;
+
+            while (read < size)
+            {
+                read += reader.Read(buffer, read, size -read);
+            }
+
+            return read;
+        }
+
+        static void DrawProgress(
+            int i,
+            long transferred,
+            long total,
+            int transferStarted,
+            int width)
+        {
+            Console.Write("\r");
+
+            char[] progress = new char[] { '-', '\\', '|', '/' };
+
+            Console.Write(progress[i % 4]);
+
+            int fillPos = (int)((float)transferred / (float)total * width);
+            string filled = new string('#', fillPos);
+            string empty = new string('-', width - fillPos);
+            Console.Write("[" + filled + empty + "] ");
+
+            Console.Write("{0, 22}. ",
+                SizeConverter.ConvertToSizeString(transferred) + " / " +
+                SizeConverter.ConvertToSizeString(total));
+
+            int seconds = (Environment.TickCount - transferStarted) / 1000;
+
+            if (seconds == 0)
+            {
+                return;
+            }
+
+            Console.Write("{0, 10}/s",
+                SizeConverter.ConvertToSizeString(transferred / seconds));
         }
 
         static void ParseRemoteAddr(string addr, out string remoteIp, out int port)
@@ -193,19 +280,22 @@ namespace p2pcopy
             internal IPEndPoint Internal;
         }
 
-        static P2pEndPoint GetExternalEndPoint()
+        static P2pEndPoint GetExternalEndPoint(int port)
         {
-            Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            Socket socket = new Socket(
+                AddressFamily.InterNetwork,
+                SocketType.Dgram, ProtocolType.Udp);
+
+            socket.SetSocketOption(
+                SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+
             try
             {
-                socket.Bind(new IPEndPoint(IPAddress.Any, 0));
+                socket.Bind(new IPEndPoint(IPAddress.Any, port));
 
                 // https://gist.github.com/zziuni/3741933
 
                 StunResult externalEndPoint = StunClient.Query("stun.l.google.com", 19302, socket);
-                Console.WriteLine(externalEndPoint.NetType.ToString());
-
-                Console.WriteLine(socket.LocalEndPoint.ToString());
 
                 if (externalEndPoint.NetType == StunNetType.UdpBlocked)
                 {
