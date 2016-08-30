@@ -19,64 +19,72 @@ namespace p2pcopy
 
             string remoteIp;
             int remotePort;
-            int localPort;
 
-            if (cla.RemotePeer != null && cla.LocalPort != -1)
-            {
-                Console.WriteLine("Using passed remote peer and local port");
-
-                ParseRemoteAddr(cla.RemotePeer, out remoteIp, out remotePort);
-
-                localPort = cla.LocalPort;
-            }
-            else
-            {
-                P2pEndPoint p2pEndPoint = GetExternalEndPoint(0);
-
-                if (p2pEndPoint == null)
-                    return;
-
-                Console.WriteLine("Tell this to your peer: {0}", p2pEndPoint.External.ToString());
-
-                Console.WriteLine();
-                Console.WriteLine();
-
-                Console.Write("Enter the ip:port of your peer: ");
-                string peer = Console.ReadLine();
-
-                if (string.IsNullOrEmpty(peer))
-                {
-                    Console.WriteLine("Invalid ip:port entered");
-                    return;
-                }
-
-                ParseRemoteAddr(peer, out remoteIp, out remotePort);
-
-                localPort = p2pEndPoint.Internal.Port;
-            }
-
-            Udt.Socket connection = PeerConnect(
-                localPort, remoteIp, remotePort);
-
-            if (connection == null)
-            {
-                Console.WriteLine("Failed to establish P2P conn to {0}", remoteIp);
-                return;
-            }
+            Socket socket = new Socket(
+                AddressFamily.InterNetwork,
+                SocketType.Dgram, ProtocolType.Udp);
 
             try
             {
-                if (args[0] == "sender")
+
+                if (cla.RemotePeer != null && cla.LocalPort != -1)
                 {
-                    RunSender(connection, cla.File);
+                    Console.WriteLine("Using passed remote peer and local port");
+
+                    ParseRemoteAddr(cla.RemotePeer, out remoteIp, out remotePort);
+
+                    socket.Bind(new IPEndPoint(IPAddress.Any, cla.LocalPort));
+                }
+                else
+                {
+                    P2pEndPoint p2pEndPoint = GetExternalEndPoint(socket, 0);
+
+                    if (p2pEndPoint == null)
+                        return;
+
+                    Console.WriteLine("Tell this to your peer: {0}", p2pEndPoint.External.ToString());
+
+                    Console.WriteLine();
+                    Console.WriteLine();
+
+                    Console.Write("Enter the ip:port of your peer: ");
+                    string peer = Console.ReadLine();
+
+                    if (string.IsNullOrEmpty(peer))
+                    {
+                        Console.WriteLine("Invalid ip:port entered");
+                        return;
+                    }
+
+                    ParseRemoteAddr(peer, out remoteIp, out remotePort);
+                }
+
+                Udt.Socket connection = PeerConnect(socket, remoteIp, remotePort);
+
+                if (connection == null)
+                {
+                    Console.WriteLine("Failed to establish P2P conn to {0}", remoteIp);
                     return;
                 }
 
-                RunReceiver(connection);
+                try
+                {
+                    if (args[0] == "sender")
+                    {
+                        RunSender(connection, cla.File);
+                        return;
+                    }
+
+                    RunReceiver(connection);
+                }
+                finally
+                {
+                    connection.Close();
+                }
             }
             finally
             {
-                connection.Close();
+                socket.Close();
             }
         }
 
@@ -280,42 +288,30 @@ namespace p2pcopy
             internal IPEndPoint Internal;
         }
 
-        static P2pEndPoint GetExternalEndPoint(int port)
+        static P2pEndPoint GetExternalEndPoint(Socket socket, int port)
         {
-            Socket socket = new Socket(
-                AddressFamily.InterNetwork,
-                SocketType.Dgram, ProtocolType.Udp);
+            socket.Bind(new IPEndPoint(IPAddress.Any, port));
 
-            socket.SetSocketOption(
-                SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+            // https://gist.github.com/zziuni/3741933
 
-            try
+            StunResult externalEndPoint = StunClient.Query("stun.l.google.com", 19302, socket);
+
+            if (externalEndPoint.NetType == StunNetType.UdpBlocked)
             {
-                socket.Bind(new IPEndPoint(IPAddress.Any, port));
-
-                // https://gist.github.com/zziuni/3741933
-
-                StunResult externalEndPoint = StunClient.Query("stun.l.google.com", 19302, socket);
-
-                if (externalEndPoint.NetType == StunNetType.UdpBlocked)
-                {
-                    Console.WriteLine("Your external IP can't be obtained. You are blocked :-(");
-                    return null;
-                }
-
-                return new P2pEndPoint()
-                {
-                    External = externalEndPoint.PublicEndPoint,
-                    Internal = (socket.LocalEndPoint as IPEndPoint)
-                };
+                Console.WriteLine("Your external IP can't be obtained. You are blocked :-(");
+                return null;
             }
-            finally
+
+            Console.WriteLine("Your firewall is {0}", externalEndPoint.NetType.ToString());
+
+            return new P2pEndPoint()
             {
-                socket.Close();
-            }
+                External = externalEndPoint.PublicEndPoint,
+                Internal = (socket.LocalEndPoint as IPEndPoint)
+            };
         }
 
-        static Udt.Socket PeerConnect(int localPort, string remoteAddr, int remotePort)
+        static Udt.Socket PeerConnect(Socket socket, string remoteAddr, int remotePort)
         {
             bool bConnected = false;
             int retry = 0;
@@ -330,11 +326,10 @@ namespace p2pcopy
                         client.Close();
 
                     client = new Udt.Socket(AddressFamily.InterNetwork, SocketType.Stream);
-                    client.ReuseAddress = true;
 
                     client.SetSocketOption(Udt.SocketOptionName.Rendezvous, true);
 
-                    client.Bind(IPAddress.Any, localPort);
+                    client.Bind(socket);
 
                     Console.Write("\r{0} - Trying to connect to {1}:{2}.  ",
                         retry++, remoteAddr, remotePort);
