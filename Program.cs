@@ -27,37 +27,38 @@ namespace p2pcopy
             try
             {
 
-                if (cla.RemotePeer != null && cla.LocalPort != -1)
+                if (cla.LocalPort != -1)
                 {
-                    Console.WriteLine("Using passed remote peer and local port");
-
-                    ParseRemoteAddr(cla.RemotePeer, out remoteIp, out remotePort);
-
-                    socket.Bind(new IPEndPoint(IPAddress.Any, cla.LocalPort));
+                    Console.WriteLine("Using local port: {0}", cla.LocalPort);
                 }
                 else
                 {
-                    P2pEndPoint p2pEndPoint = GetExternalEndPoint(socket, 0);
-
-                    if (p2pEndPoint == null)
-                        return;
-
-                    Console.WriteLine("Tell this to your peer: {0}", p2pEndPoint.External.ToString());
-
-                    Console.WriteLine();
-                    Console.WriteLine();
-
-                    Console.Write("Enter the ip:port of your peer: ");
-                    string peer = Console.ReadLine();
-
-                    if (string.IsNullOrEmpty(peer))
-                    {
-                        Console.WriteLine("Invalid ip:port entered");
-                        return;
-                    }
-
-                    ParseRemoteAddr(peer, out remoteIp, out remotePort);
+                    cla.LocalPort = 0;
                 }
+
+                socket.Bind(new IPEndPoint(IPAddress.Any, cla.LocalPort));
+
+                P2pEndPoint p2pEndPoint = GetExternalEndPoint(socket);
+
+                if (p2pEndPoint == null)
+                    return;
+
+                Console.WriteLine("Tell this to your peer: {0}", p2pEndPoint.External.ToString());
+
+                Console.WriteLine();
+                Console.WriteLine();
+
+                Console.Write("Enter the ip:port of your peer: ");
+                string peer = Console.ReadLine();
+
+                if (string.IsNullOrEmpty(peer))
+                {
+                    Console.WriteLine("Invalid ip:port entered");
+                    return;
+                }
+
+                ParseRemoteAddr(peer, out remoteIp, out remotePort);
+
 
                 Udt.Socket connection = PeerConnect(socket, remoteIp, remotePort);
 
@@ -98,8 +99,6 @@ namespace p2pcopy
 
             internal int LocalPort = -1;
 
-            internal string RemotePeer = null;
-
             static internal CommandLineArguments Parse(string[] args)
             {
                 CommandLineArguments result = new CommandLineArguments();
@@ -125,10 +124,6 @@ namespace p2pcopy
                         case "--localport":
                             if (args.Length == i) return null;
                             result.LocalPort = int.Parse(args[i++]);
-                            break;
-                        case "--remotepeer":
-                            if (args.Length == i) return null;
-                            result.RemotePeer = args[i++];
                             break;
                         case "help":
                             return null;
@@ -288,10 +283,8 @@ namespace p2pcopy
             internal IPEndPoint Internal;
         }
 
-        static P2pEndPoint GetExternalEndPoint(Socket socket, int port)
+        static P2pEndPoint GetExternalEndPoint(Socket socket)
         {
-            socket.Bind(new IPEndPoint(IPAddress.Any, port));
-
             // https://gist.github.com/zziuni/3741933
 
             StunResult externalEndPoint = StunClient.Query("stun.l.google.com", 19302, socket);
