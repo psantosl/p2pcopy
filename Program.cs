@@ -75,7 +75,7 @@ namespace p2pcopy
                 {
                     if (args[0] == "sender")
                     {
-                        RunSender(connection, cla.File);
+                        RunSender(connection, cla.File, cla.Verbose);
                         return;
                     }
 
@@ -102,6 +102,8 @@ namespace p2pcopy
 
             internal int LocalPort = -1;
 
+            internal bool Verbose = false;
+
             static internal CommandLineArguments Parse(string[] args)
             {
                 CommandLineArguments result = new CommandLineArguments();
@@ -119,6 +121,9 @@ namespace p2pcopy
                             break;
                         case "receiver":
                             result.Receiver = true;
+                            break;
+                        case "--verbose":
+                            result.Verbose = true;
                             break;
                         case "--file":
                             if (args.Length == i) return null;
@@ -142,7 +147,7 @@ namespace p2pcopy
             }
         }
 
-        static void RunSender(Udt.Socket conn, string file)
+        static void RunSender(Udt.Socket conn, string file, bool bVerbose)
         {
             int ini = Environment.TickCount;
 
@@ -162,7 +167,7 @@ namespace p2pcopy
 
                 int i = 0;
 
-                DrawProgress(i++, pos, fileSize, ini, Console.WindowWidth / 2);
+                DrawProgress(i++, pos, fileSize, ini, Console.WindowWidth / 3);
 
                 while (pos < fileSize)
                 {
@@ -185,19 +190,20 @@ namespace p2pcopy
 
                     pos += toSend;
 
-                    DrawProgress(i++, pos, fileSize, ini, Console.WindowWidth / 2);
+                    DrawProgress(i++, pos, fileSize, ini, Console.WindowWidth / 3);
 
-                    Console.WriteLine("Current: {0} / s",
-                        SizeConverter.ConvertToSizeString(toSend / (Environment.TickCount - iteration) * 1000));
+                    if (bVerbose)
+                    {
+                        Console.WriteLine();
 
-                    Console.WriteLine("BandwidthMbps {0} mbps.", conn.GetPerformanceInfo().Probe.BandwidthMbps);
-                    Console.WriteLine("RoundtripTime {0}.", conn.GetPerformanceInfo().Probe.RoundtripTime);
-                    Console.WriteLine("SendMbps {0}.", conn.GetPerformanceInfo().Local.SendMbps);
-                    Console.WriteLine("ReceiveMbps {0}.", conn.GetPerformanceInfo().Local.ReceiveMbps);
+                        Console.WriteLine("Current: {0} / s",
+                            SizeConverter.ConvertToSizeString(toSend / (Environment.TickCount - iteration) * 1000));
 
-                    var local = conn.GetPerformanceInfo().Local;
-                    var total = conn.GetPerformanceInfo().Total;
-                    var probe = conn.GetPerformanceInfo().Probe;
+                        Console.WriteLine("BandwidthMbps {0} mbps.", conn.GetPerformanceInfo().Probe.BandwidthMbps);
+                        Console.WriteLine("RoundtripTime {0}.", conn.GetPerformanceInfo().Probe.RoundtripTime);
+                        Console.WriteLine("SendMbps {0}.", conn.GetPerformanceInfo().Local.SendMbps);
+                        Console.WriteLine("ReceiveMbps {0}.", conn.GetPerformanceInfo().Local.ReceiveMbps);
+                    }
                 }
             }
         }
@@ -227,7 +233,7 @@ namespace p2pcopy
                     {
                         int toRecv = reader.ReadInt32();
 
-                        ReadFragment(conn, toRecv, buffer);
+                        ReadFragment(reader, toRecv, buffer);
 
                         fileStream.Write(buffer, 0, toRecv);
 
@@ -241,13 +247,13 @@ namespace p2pcopy
             }
         }
 
-        static int ReadFragment(Udt.Socket socket, int size, byte[] buffer)
+        static int ReadFragment(BinaryReader reader, int size, byte[] buffer)
         {
             int read = 0;
 
             while (read < size)
             {
-                read += socket.Receive(buffer, read, size -read);
+                read += reader.Read(buffer, read, size -read);
             }
 
             return read;
