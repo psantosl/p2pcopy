@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Net.Sockets;
+using System.Collections.Generic;
 using System.Net;
 using System.IO;
+using System.Text.RegularExpressions;
+using System.Net.Cache;
 
 namespace p2pcopy
 {
@@ -57,8 +60,10 @@ namespace p2pcopy
                     return;
                 }
 
-                ParseRemoteAddr(peer, out remoteIp, out remotePort);
+                // try again to connect to external to "reopen" port
+                GetExternalEndPoint(socket);
 
+                ParseRemoteAddr(peer, out remoteIp, out remotePort);
 
                 Udt.Socket connection = PeerConnect(socket, remoteIp, remotePort);
 
@@ -153,7 +158,7 @@ namespace p2pcopy
                 writer.Write(Path.GetFileName(file));
                 writer.Write(fileSize);
 
-                byte[] buffer = new byte[512 * 1024];
+                byte[] buffer = new byte[65 * 1024];
 
                 long pos = 0;
 
@@ -170,9 +175,10 @@ namespace p2pcopy
                     fileReader.Read(buffer, 0, toSend);
 
                     writer.Write(toSend);
-                    writer.Write(buffer, 0, toSend);
+                    conn.Send(buffer, 0, toSend);
+                    //writer.Write(buffer, 0, toSend);
 
-                    if (reader.ReadString() != "OK")
+                    if (!reader.ReadBoolean())
                     {
                         Console.WriteLine("Error in transmission");
                         return;
@@ -181,6 +187,16 @@ namespace p2pcopy
                     pos += toSend;
 
                     DrawProgress(i++, pos, fileSize, ini, Console.WindowWidth / 2);
+
+                    Console.WriteLine("BandwidthMbps {0} mbps.", conn.GetPerformanceInfo().Probe.BandwidthMbps);
+                    Console.WriteLine("RoundtripTime {0}.", conn.GetPerformanceInfo().Probe.RoundtripTime);
+                    Console.WriteLine("SendMbps {0}.", conn.GetPerformanceInfo().Local.SendMbps);
+                    Console.WriteLine("ReceiveMbps {0}.", conn.GetPerformanceInfo().Local.ReceiveMbps);
+
+
+                    var local = conn.GetPerformanceInfo().Local;
+                    var total = conn.GetPerformanceInfo().Total;
+                    var probe = conn.GetPerformanceInfo().Probe;
                 }
             }
         }
@@ -210,13 +226,13 @@ namespace p2pcopy
                     {
                         int toRecv = reader.ReadInt32();
 
-                        ReadFragment(reader, toRecv, buffer);
+                        ReadFragment(conn, toRecv, buffer);
 
                         fileStream.Write(buffer, 0, toRecv);
 
                         read += toRecv;
 
-                        writer.Write("OK");
+                        writer.Write(true);
 
                         DrawProgress(i++, read, size, ini, Console.WindowWidth / 2);
                     }
@@ -224,13 +240,13 @@ namespace p2pcopy
             }
         }
 
-        static int ReadFragment(BinaryReader reader, int size, byte[] buffer)
+        static int ReadFragment(Udt.Socket socket, int size, byte[] buffer)
         {
             int read = 0;
 
             while (read < size)
             {
-                read += reader.Read(buffer, read, size -read);
+                read += socket.Receive(buffer, read, size -read);
             }
 
             return read;
@@ -304,6 +320,15 @@ namespace p2pcopy
             };
         }
 
+        static int SleepTime(DateTime now)
+        {
+            List<int> seconds = new List<int>() {10, 20, 30, 40, 50, 60};
+
+            int next = seconds.Find(x => x > now.Second);
+
+            return next - now.Second;
+        }
+
         static Udt.Socket PeerConnect(Socket socket, string remoteAddr, int remotePort)
         {
             bool bConnected = false;
@@ -315,6 +340,17 @@ namespace p2pcopy
             {
                 try
                 {
+                    DateTime now = GetNistTime();
+
+                    int sleepTimeToSync = SleepTime(now);
+
+                    Console.WriteLine("[{0}] - Waiting {1} sec to sync with other peer",
+                        now.ToLongTimeString(),
+                        sleepTimeToSync);
+                    System.Threading.Thread.Sleep(sleepTimeToSync * 1000);
+
+                    GetExternalEndPoint(socket);
+
                     if (client != null)
                         client.Close();
 
@@ -343,5 +379,30 @@ namespace p2pcopy
             return client;
         }
 
+
+        static DateTime GetNistTime()
+        {
+            // http://stackoverflow.com/questions/6435099/how-to-get-datetime-from-the-internet
+
+            DateTime dateTime = DateTime.MinValue;
+
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create("http://nist.time.gov/actualtime.cgi?lzbc=siqm9b");
+            request.Method = "GET";
+            request.Accept = "text/html, application/xhtml+xml, */*";
+            request.UserAgent = "Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.1; Trident/6.0)";
+            request.ContentType = "application/x-www-form-urlencoded";
+            request.CachePolicy = new RequestCachePolicy(RequestCacheLevel.NoCacheNoStore); //No caching
+            HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+            if (response.StatusCode == HttpStatusCode.OK)
+            {
+                StreamReader stream = new StreamReader(response.GetResponseStream());
+                string html = stream.ReadToEnd();//<timestamp time=\"1395772696469995\" delay=\"1395772696469995\"/>
+                string time = Regex.Match(html, @"(?<=\btime="")[^""]*").Value;
+                double milliseconds = Convert.ToInt64(time) / 1000.0;
+                dateTime = new DateTime(1970, 1, 1).AddMilliseconds(milliseconds).ToLocalTime();
+            }
+
+            return dateTime;
+        }
     }
 }
