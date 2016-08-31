@@ -156,7 +156,7 @@ namespace p2pcopy
                 writer.Write(Path.GetFileName(file));
                 writer.Write(fileSize);
 
-                byte[] buffer = new byte[65 * 1024];
+                byte[] buffer = new byte[512 * 1024];
 
                 long pos = 0;
 
@@ -172,9 +172,10 @@ namespace p2pcopy
 
                     fileReader.Read(buffer, 0, toSend);
 
+                    int iteration = Environment.TickCount;
+
                     writer.Write(toSend);
                     conn.Send(buffer, 0, toSend);
-                    //writer.Write(buffer, 0, toSend);
 
                     if (!reader.ReadBoolean())
                     {
@@ -186,11 +187,13 @@ namespace p2pcopy
 
                     DrawProgress(i++, pos, fileSize, ini, Console.WindowWidth / 2);
 
+                    Console.WriteLine("Current: {0} / s",
+                        SizeConverter.ConvertToSizeString(toSend / (Environment.TickCount - iteration) * 1000));
+
                     Console.WriteLine("BandwidthMbps {0} mbps.", conn.GetPerformanceInfo().Probe.BandwidthMbps);
                     Console.WriteLine("RoundtripTime {0}.", conn.GetPerformanceInfo().Probe.RoundtripTime);
                     Console.WriteLine("SendMbps {0}.", conn.GetPerformanceInfo().Local.SendMbps);
                     Console.WriteLine("ReceiveMbps {0}.", conn.GetPerformanceInfo().Local.ReceiveMbps);
-
 
                     var local = conn.GetPerformanceInfo().Local;
                     var total = conn.GetPerformanceInfo().Total;
