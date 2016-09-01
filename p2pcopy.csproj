@@ -40,9 +40,12 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ConsoleProgress.cs" />
     <Compile Include="InternetTime.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Receiver.cs" />
+    <Compile Include="Sender.cs" />
     <Compile Include="SizeConverter.cs" />
     <Compile Include="StunClient.cs" />
   </ItemGroup>

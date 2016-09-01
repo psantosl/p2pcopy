@@ -1,0 +1,73 @@
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace p2pcopy
+{
+    static class Sender
+    {
+        static internal void Run(Udt.Socket conn, string file, bool bVerbose)
+        {
+            int ini = Environment.TickCount;
+
+            using (Udt.NetworkStream netStream = new Udt.NetworkStream(conn))
+            using (BinaryWriter writer = new BinaryWriter(netStream))
+            using (BinaryReader reader = new BinaryReader(netStream))
+            using (FileStream fileReader = new FileStream(file, FileMode.Open, FileAccess.Read))
+            {
+                long fileSize = new FileInfo(file).Length;
+
+                writer.Write(Path.GetFileName(file));
+                writer.Write(fileSize);
+
+                byte[] buffer = new byte[512 * 1024];
+
+                long pos = 0;
+
+                int i = 0;
+
+                ConsoleProgress.Draw(i++, pos, fileSize, ini, Console.WindowWidth / 3);
+
+                while (pos < fileSize)
+                {
+                    int toSend = buffer.Length < (fileSize - pos)
+                        ? buffer.Length
+                        : (int)(fileSize - pos);
+
+                    fileReader.Read(buffer, 0, toSend);
+
+                    int iteration = Environment.TickCount;
+
+                    writer.Write(toSend);
+                    conn.Send(buffer, 0, toSend);
+
+                    if (!reader.ReadBoolean())
+                    {
+                        Console.WriteLine("Error in transmission");
+                        return;
+                    }
+
+                    pos += toSend;
+
+                    ConsoleProgress.Draw(i++, pos, fileSize, ini, Console.WindowWidth / 3);
+
+                    if (bVerbose)
+                    {
+                        Console.WriteLine();
+
+                        Console.WriteLine("Current: {0} / s",
+                            SizeConverter.ConvertToSizeString(toSend / (Environment.TickCount - iteration) * 1000));
+
+                        Console.WriteLine("BandwidthMbps {0} mbps.", conn.GetPerformanceInfo().Probe.BandwidthMbps);
+                        Console.WriteLine("RoundtripTime {0}.", conn.GetPerformanceInfo().Probe.RoundtripTime);
+                        Console.WriteLine("SendMbps {0}.", conn.GetPerformanceInfo().Local.SendMbps);
+                        Console.WriteLine("ReceiveMbps {0}.", conn.GetPerformanceInfo().Local.ReceiveMbps);
+                    }
+                }
+            }
+        }
+    }
+}

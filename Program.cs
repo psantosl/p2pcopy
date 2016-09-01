@@ -75,11 +75,11 @@ namespace p2pcopy
                 {
                     if (args[0] == "sender")
                     {
-                        RunSender(connection, cla.File, cla.Verbose);
+                        Sender.Run(connection, cla.File, cla.Verbose);
                         return;
                     }
 
-                    RunReceiver(connection);
+                    Receiver.Run(connection);
                 }
                 finally
                 {
@@ -145,151 +145,6 @@ namespace p2pcopy
             {
                 Console.WriteLine("p2pcopy [sender --file file_to_send |receiver]");
             }
-        }
-
-        static void RunSender(Udt.Socket conn, string file, bool bVerbose)
-        {
-            int ini = Environment.TickCount;
-
-            using (Udt.NetworkStream netStream = new Udt.NetworkStream(conn))
-            using (BinaryWriter writer = new BinaryWriter(netStream))
-            using (BinaryReader reader = new BinaryReader(netStream))
-            using (FileStream fileReader = new FileStream(file, FileMode.Open, FileAccess.Read))
-            {
-                long fileSize = new FileInfo(file).Length;
-
-                writer.Write(Path.GetFileName(file));
-                writer.Write(fileSize);
-
-                byte[] buffer = new byte[512 * 1024];
-
-                long pos = 0;
-
-                int i = 0;
-
-                DrawProgress(i++, pos, fileSize, ini, Console.WindowWidth / 3);
-
-                while (pos < fileSize)
-                {
-                    int toSend = buffer.Length < (fileSize - pos)
-                        ? buffer.Length
-                        : (int) (fileSize - pos);
-
-                    fileReader.Read(buffer, 0, toSend);
-
-                    int iteration = Environment.TickCount;
-
-                    writer.Write(toSend);
-                    conn.Send(buffer, 0, toSend);
-
-                    if (!reader.ReadBoolean())
-                    {
-                        Console.WriteLine("Error in transmission");
-                        return;
-                    }
-
-                    pos += toSend;
-
-                    DrawProgress(i++, pos, fileSize, ini, Console.WindowWidth / 3);
-
-                    if (bVerbose)
-                    {
-                        Console.WriteLine();
-
-                        Console.WriteLine("Current: {0} / s",
-                            SizeConverter.ConvertToSizeString(toSend / (Environment.TickCount - iteration) * 1000));
-
-                        Console.WriteLine("BandwidthMbps {0} mbps.", conn.GetPerformanceInfo().Probe.BandwidthMbps);
-                        Console.WriteLine("RoundtripTime {0}.", conn.GetPerformanceInfo().Probe.RoundtripTime);
-                        Console.WriteLine("SendMbps {0}.", conn.GetPerformanceInfo().Local.SendMbps);
-                        Console.WriteLine("ReceiveMbps {0}.", conn.GetPerformanceInfo().Local.ReceiveMbps);
-                    }
-                }
-            }
-        }
-
-        static void RunReceiver(Udt.Socket conn)
-        {
-            int ini = Environment.TickCount;
-
-            using (Udt.NetworkStream netStream = new Udt.NetworkStream(conn))
-            using (BinaryWriter writer = new BinaryWriter(netStream))
-            using (BinaryReader reader = new BinaryReader(netStream))
-            {
-                string fileName = reader.ReadString();
-                long size = reader.ReadInt64();
-
-                byte[] buffer = new byte[4 * 1024 * 1024];
-
-                int i = 0;
-
-                DrawProgress(i++, 0, size, ini, Console.WindowWidth / 2);
-
-                using (FileStream fileStream = new FileStream(fileName, FileMode.Create))
-                {
-                    long read = 0;
-
-                    while (read < size)
-                    {
-                        int toRecv = reader.ReadInt32();
-
-                        ReadFragment(reader, toRecv, buffer);
-
-                        fileStream.Write(buffer, 0, toRecv);
-
-                        read += toRecv;
-
-                        writer.Write(true);
-
-                        DrawProgress(i++, read, size, ini, Console.WindowWidth / 2);
-                    }
-                }
-            }
-        }
-
-        static int ReadFragment(BinaryReader reader, int size, byte[] buffer)
-        {
-            int read = 0;
-
-            while (read < size)
-            {
-                read += reader.Read(buffer, read, size -read);
-            }
-
-            return read;
-        }
-
-        static void DrawProgress(
-            int i,
-            long transferred,
-            long total,
-            int transferStarted,
-            int width)
-        {
-            Console.Write("\r");
-
-            char[] progress = new char[] { '-', '\\', '|', '/' };
-
-            Console.Write(progress[i % 4]);
-
-            int fillPos = (int)((float)transferred / (float)total * width);
-            string filled = new string('#', fillPos);
-            string empty = new string('-', width - fillPos);
-            Console.Write("[" + filled + empty + "] ");
-
-            Console.Write("{0, 22}. ",
-                SizeConverter.ConvertToSizeString(transferred) + " / " +
-                SizeConverter.ConvertToSizeString(total));
-
-            int seconds = (Environment.TickCount - transferStarted) / 1000;
-
-            if (seconds == 0)
-            {
-                return;
-            }
-
-            Console.Write("{0, 10}/s",
-                SizeConverter.ConvertToSizeString(transferred / seconds));
         }
 
         static void ParseRemoteAddr(string addr, out string remoteIp, out int port)
