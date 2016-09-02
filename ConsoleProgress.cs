@@ -17,6 +17,9 @@ namespace p2pcopy
 
             Console.Write(progress[i % 4]);
 
+            if (total == 0)
+                total = 1;
+
             int fillPos = (int)((float)transferred / (float)total * width);
             string filled = new string('#', fillPos);
             string empty = new string('-', width - fillPos);

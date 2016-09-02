@@ -25,9 +25,11 @@ namespace p2pcopy
                 AddressFamily.InterNetwork,
                 SocketType.Dgram, ProtocolType.Udp);
 
+            socket.SetSocketOption(
+                SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+
             try
             {
-
                 if (cla.LocalPort != -1)
                 {
                     Console.WriteLine("Using local port: {0}", cla.LocalPort);
@@ -75,11 +77,11 @@ namespace p2pcopy
                 {
                     if (args[0] == "sender")
                     {
-                        Sender.Run(connection, cla.File, cla.Verbose);
+                        Sender.Run(connection, cla.File, cla.Parts, cla.Verbose);
                         return;
                     }
 
-                    Receiver.Run(connection);
+                    Receiver.Run(connection, cla.Parts);
                 }
                 finally
                 {
@@ -103,6 +105,7 @@ namespace p2pcopy
             internal int LocalPort = -1;
 
             internal bool Verbose = false;
+            internal int Parts = 1;
 
             static internal CommandLineArguments Parse(string[] args)
             {
@@ -132,6 +135,10 @@ namespace p2pcopy
                         case "--localport":
                             if (args.Length == i) return null;
                             result.LocalPort = int.Parse(args[i++]);
+                            break;
+                        case "--parts":
+                            if (args.Length == i) return null;
+                            result.Parts = int.Parse(args[i++]);
                             break;
                         case "help":
                             return null;
