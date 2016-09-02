@@ -11,11 +11,11 @@ namespace p2pcopy.tcpholepunch
             int remotePort,
             int localPort)
         {
-            Acceptor acceptor = new Acceptor();
-            acceptor.Run(localPort);
-
             Connector connector = new Connector();
             connector.Run(remoteAddr, remotePort, localPort);
+
+            Acceptor acceptor = new Acceptor();
+            acceptor.Run(localPort);
 
             while (true)
             {
@@ -31,6 +31,13 @@ namespace p2pcopy.tcpholepunch
                 {
                     Console.WriteLine("Connector correctly connected");
                     return connector.GetSocket();
+                }
+
+                if (connector.Retry())
+                {
+                    Console.WriteLine("Retrying connection");
+                    connector = new Connector();
+                    connector.Run(remoteAddr, remotePort, localPort);
                 }
             }
         }
@@ -51,9 +58,32 @@ namespace p2pcopy.tcpholepunch
                 mSocket.BeginConnect(remoteAddr, port,
                     (IAsyncResult ar) =>
                     {
-                        mbConnected = true;
+                        Socket s = ar.AsyncState as Socket;
+
+                        if (s.Connected)
+                        {
+                            Console.WriteLine("The socket is connected! {0}", s.RemoteEndPoint.ToString());
+                        }
+                        else
+                        {
+                            Console.WriteLine("Connect didn't work!");
+
+                            s.Close();
+                            lock (mLock)
+                            {
+                                mbRetry = true;
+                            }
+                            return;
+                        }
+
+                        (ar.AsyncState as Socket).EndConnect(ar);
+                        lock (mLock)
+                        {
+                            Console.WriteLine("Connection happened!");
+                            mbConnected = true;
+                        }
                     },
-                    null);
+                    mSocket);
             }
 
             internal bool Connected()
@@ -61,6 +91,14 @@ namespace p2pcopy.tcpholepunch
                 lock (mLock)
                 {
                     return mbConnected;
+                }
+            }
+
+            internal bool Retry()
+            {
+                lock (mLock)
+                {
+                    return mbRetry;
                 }
             }
 
@@ -74,6 +112,7 @@ namespace p2pcopy.tcpholepunch
 
             Socket mSocket;
             bool mbConnected = false;
+            bool mbRetry = false;
             object mLock = new object();
         }
 
@@ -95,6 +134,7 @@ namespace p2pcopy.tcpholepunch
                 sock.BeginAccept(
                     (IAsyncResult ar) =>
                     {
+                        Console.WriteLine("Connection accepted!");
                         lock (mLock)
                         {
                             mSocket = (Socket)ar.AsyncState;
