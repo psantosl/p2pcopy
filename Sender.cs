@@ -5,13 +5,10 @@ namespace p2pcopy
 {
     static class Sender
     {
-        static internal void Run(Udt.Socket conn, string file, bool bVerbose)
+        static internal void Run(BinaryReader reader, BinaryWriter writer, string file)
         {
             int ini = Environment.TickCount;
 
-            using (Udt.NetworkStream netStream = new Udt.NetworkStream(conn))
-            using (BinaryWriter writer = new BinaryWriter(netStream))
-            using (BinaryReader reader = new BinaryReader(netStream))
             using (FileStream fileReader = new FileStream(file, FileMode.Open, FileAccess.Read))
             {
                 long fileSize = new FileInfo(file).Length;
@@ -38,7 +35,7 @@ namespace p2pcopy
                     int iteration = Environment.TickCount;
 
                     writer.Write(toSend);
-                    conn.Send(buffer, 0, toSend);
+                    writer.Write(buffer, 0, toSend);
 
                     if (!reader.ReadBoolean())
                     {
@@ -49,19 +46,6 @@ namespace p2pcopy
                     pos += toSend;
 
                     ConsoleProgress.Draw(i++, pos, fileSize, ini, Console.WindowWidth / 3);
-
-                    if (bVerbose)
-                    {
-                        Console.WriteLine();
-
-                        Console.WriteLine("Current: {0} / s",
-                            SizeConverter.ConvertToSizeString(toSend / (Environment.TickCount - iteration) * 1000));
-
-                        Console.WriteLine("BandwidthMbps {0} mbps.", conn.GetPerformanceInfo().Probe.BandwidthMbps);
-                        Console.WriteLine("RoundtripTime {0}.", conn.GetPerformanceInfo().Probe.RoundtripTime);
-                        Console.WriteLine("SendMbps {0}.", conn.GetPerformanceInfo().Local.SendMbps);
-                        Console.WriteLine("ReceiveMbps {0}.", conn.GetPerformanceInfo().Local.ReceiveMbps);
-                    }
                 }
             }
         }

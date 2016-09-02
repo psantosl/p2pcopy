@@ -96,13 +96,18 @@ namespace p2pcopy
 
                 try
                 {
-                    if (cla.Sender)
+                    using (Udt.NetworkStream netStream = new Udt.NetworkStream(connection))
+                    using (BinaryWriter writer = new BinaryWriter(netStream))
+                    using (BinaryReader reader = new BinaryReader(netStream))
                     {
-                        Sender.Run(connection, cla.File, cla.Verbose);
-                        return;
-                    }
+                        if (cla.Sender)
+                        {
+                            Sender.Run(reader, writer, cla.File);
+                            return;
+                        }
 
-                    Receiver.Run(connection);
+                        Receiver.Run(reader, writer);
+                    }
                 }
                 finally
                 {
@@ -125,7 +130,6 @@ namespace p2pcopy
 
             internal int LocalPort = -1;
 
-            internal bool Verbose = false;
             internal bool Tcp = false;
             internal string TcpRemotePeer;
 
@@ -149,9 +153,6 @@ namespace p2pcopy
                             break;
                         case "--tcp":
                             result.Tcp = true;
-                            break;
-                        case "--verbose":
-                            result.Verbose = true;
                             break;
                         case "--file":
                             if (args.Length == i) return null;
