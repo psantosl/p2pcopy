@@ -91,7 +91,7 @@ namespace p2pcopy
 
                 ConsoleProgress.Draw(spinAnimator++, sent, fileSize, ini, Console.WindowWidth / 3);
 
-                if (mSent == fileSize)
+                if (sent == fileSize)
                     return;
 
                 if (bVerbose)
@@ -136,7 +136,7 @@ namespace p2pcopy
 
                 Console.WriteLine("Sender {0} wrote fragment size {1}", opts.Id, fragmentSize);
 
-                byte[] buffer = new byte[100 * 1024];
+                byte[] buffer = new byte[512 * 1024];
 
                 long pos = 0;
 
