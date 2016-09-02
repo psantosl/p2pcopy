@@ -18,12 +18,23 @@ namespace p2pcopy
                 return;
             }
 
-            if (!cla.Tcp)
+            if (cla.Tcp)
             {
-                RunP2P(cla);
+                RunSimpleTcp(cla);
                 return;
             }
 
+            if (cla.TcpHolePunch)
+            {
+                RunTcpHolePunch(cla);
+                return;
+            }
+
+            RunP2P(cla);
+        }
+
+        static void RunSimpleTcp(CommandLineArguments cla)
+        {
             // tcp
             if (cla.Receiver)
             {
@@ -37,6 +48,29 @@ namespace p2pcopy
             ParseRemoteAddr(cla.TcpRemotePeer, out remoteIp, out port);
 
             tcp.Sender.Send(remoteIp, port, cla.File);
+        }
+
+        static void RunTcpHolePunch(CommandLineArguments cla)
+        {
+            Console.WriteLine("Running tcp hole punch");
+
+            string remoteIp;
+            int port;
+
+            ParseRemoteAddr(cla.TcpRemotePeer, out remoteIp, out port);
+
+            Socket sock = tcpholepunch.TcpHolePunch.PeerConnect(
+                remoteIp, port, cla.LocalPort);
+
+            using (NetworkStream netStream = new NetworkStream(sock))
+            using (BinaryWriter writer = new BinaryWriter(netStream))
+            using (BinaryReader reader = new BinaryReader(netStream))
+            {
+                if (cla.Sender)
+                    p2pcopy.Sender.Run(reader, writer, cla.File);
+                else
+                    p2pcopy.Receiver.Run(reader, writer);
+            }
         }
 
         static void RunP2P(CommandLineArguments cla)
@@ -132,6 +166,7 @@ namespace p2pcopy
 
             internal bool Tcp = false;
             internal string TcpRemotePeer;
+            internal bool TcpHolePunch = false;
 
             static internal CommandLineArguments Parse(string[] args)
             {
@@ -153,6 +188,9 @@ namespace p2pcopy
                             break;
                         case "--tcp":
                             result.Tcp = true;
+                            break;
+                        case "--tcpholepunch":
+                            result.TcpHolePunch = true;
                             break;
                         case "--file":
                             if (args.Length == i) return null;
