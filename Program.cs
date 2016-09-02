@@ -18,6 +18,29 @@ namespace p2pcopy
                 return;
             }
 
+            if (!cla.Tcp)
+            {
+                RunP2P(cla);
+                return;
+            }
+
+            // tcp
+            if (cla.Receiver)
+            {
+                tcp.Receiver.Receive(cla.LocalPort);
+                return;
+            }
+
+            string remoteIp;
+            int port;
+
+            ParseRemoteAddr(cla.TcpRemotePeer, out remoteIp, out port);
+
+            tcp.Sender.Send(remoteIp, port, cla.File);
+        }
+
+        static void RunP2P(CommandLineArguments cla)
+        {
             string remoteIp;
             int remotePort;
 
@@ -73,7 +96,7 @@ namespace p2pcopy
 
                 try
                 {
-                    if (args[0] == "sender")
+                    if (cla.Sender)
                     {
                         Sender.Run(connection, cla.File, cla.Verbose);
                         return;
@@ -103,6 +126,8 @@ namespace p2pcopy
             internal int LocalPort = -1;
 
             internal bool Verbose = false;
+            internal bool Tcp = false;
+            internal string TcpRemotePeer;
 
             static internal CommandLineArguments Parse(string[] args)
             {
@@ -122,12 +147,19 @@ namespace p2pcopy
                         case "receiver":
                             result.Receiver = true;
                             break;
+                        case "--tcp":
+                            result.Tcp = true;
+                            break;
                         case "--verbose":
                             result.Verbose = true;
                             break;
                         case "--file":
                             if (args.Length == i) return null;
                             result.File = args[i++];
+                            break;
+                        case "--tcpremotepeer":
+                            if (args.Length == i) return null;
+                            result.TcpRemotePeer = args[i++];
                             break;
                         case "--localport":
                             if (args.Length == i) return null;

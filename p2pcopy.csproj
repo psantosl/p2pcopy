@@ -48,6 +48,8 @@
     <Compile Include="Sender.cs" />
     <Compile Include="SizeConverter.cs" />
     <Compile Include="StunClient.cs" />
+    <Compile Include="tcp\Receiver.cs" />
+    <Compile Include="tcp\Sender.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">

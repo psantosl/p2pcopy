@@ -1,15 +1,22 @@
 ﻿using System;
 using System.IO;
+using System.Net.Sockets;
 
-namespace p2pcopy
+namespace p2pcopy.tcp
 {
     static class Sender
     {
-        static internal void Run(Udt.Socket conn, string file, bool bVerbose)
+        static internal void Send(string host, int port, string file)
         {
+            Socket socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
+
+            socket.Connect(host, port);
+
+            Console.WriteLine("Connected to {0}:{1}", host, port);
+
             int ini = Environment.TickCount;
 
-            using (Udt.NetworkStream netStream = new Udt.NetworkStream(conn))
+            using (NetworkStream netStream = new NetworkStream(socket))
             using (BinaryWriter writer = new BinaryWriter(netStream))
             using (BinaryReader reader = new BinaryReader(netStream))
             using (FileStream fileReader = new FileStream(file, FileMode.Open, FileAccess.Read))
@@ -38,7 +45,7 @@ namespace p2pcopy
                     int iteration = Environment.TickCount;
 
                     writer.Write(toSend);
-                    conn.Send(buffer, 0, toSend);
+                    socket.Send(buffer, 0, toSend, SocketFlags.None);
 
                     if (!reader.ReadBoolean())
                     {
@@ -49,21 +56,10 @@ namespace p2pcopy
                     pos += toSend;
 
                     ConsoleProgress.Draw(i++, pos, fileSize, ini, Console.WindowWidth / 3);
-
-                    if (bVerbose)
-                    {
-                        Console.WriteLine();
-
-                        Console.WriteLine("Current: {0} / s",
-                            SizeConverter.ConvertToSizeString(toSend / (Environment.TickCount - iteration) * 1000));
-
-                        Console.WriteLine("BandwidthMbps {0} mbps.", conn.GetPerformanceInfo().Probe.BandwidthMbps);
-                        Console.WriteLine("RoundtripTime {0}.", conn.GetPerformanceInfo().Probe.RoundtripTime);
-                        Console.WriteLine("SendMbps {0}.", conn.GetPerformanceInfo().Local.SendMbps);
-                        Console.WriteLine("ReceiveMbps {0}.", conn.GetPerformanceInfo().Local.ReceiveMbps);
-                    }
                 }
             }
+
+            Console.WriteLine("{0} ms", Environment.TickCount - ini);
         }
     }
 }
