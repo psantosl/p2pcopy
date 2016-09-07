@@ -6,7 +6,11 @@ You are on a Slack/Skype/whatever session and need to send a 10GB virtual machin
 
 This is exactly what p2pcopy is all about.
 
-Other (nicer) alternatives exist, web based, but I wanted to go for a command line solution. Also, most p2p options need a central server to do the exchange of the public IPs before starting the "hole punching". I also wanted to avoid this, so the exchange is done manually, sharing the public IPs using your favourite messaging platform (like Slack).
+And I guess I'm just yet another one looking at the xkcd:File Transfer thing:
+
+![xdcd:File Transfer](http://imgs.xkcd.com/comics/file_transfer.png)
+
+Other (nicer) alternatives exist, web based (WebRTC in fact) (even serverless [like this one] (http://blog.printf.net/articles/2013/05/17/webrtc-without-a-signaling-server)), but I wanted to go for a command line solution. Also, most p2p options need a central server to do the exchange of the public IPs before starting the "hole punching". I also wanted to avoid this, so the exchange is done manually, sharing the public IPs using your favourite messaging platform (like Slack).
 
 It is built on top of UDT, the famous library to speed up data transfer on high bandwidth, high latency networks. It includes a "rendezvous" mode to perform UDP hole punching, and that's what I use.
 
