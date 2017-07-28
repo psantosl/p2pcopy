@@ -15,7 +15,7 @@ namespace p2pcopy.tcpholepunch
             connector.Run(remoteAddr, remotePort, localPort);
 
             Acceptor acceptor = new Acceptor();
-            acceptor.Run(localPort);
+            //acceptor.Run(localPort);
 
             while (true)
             {
@@ -55,35 +55,12 @@ namespace p2pcopy.tcpholepunch
 
                 mSocket.Bind(new IPEndPoint(IPAddress.Any, localPort));
 
-                mSocket.BeginConnect(remoteAddr, port,
-                    (IAsyncResult ar) =>
-                    {
-                        Socket s = ar.AsyncState as Socket;
+                mRemoteAddr = remoteAddr;
+                mRemotePort = port;
 
-                        if (s.Connected)
-                        {
-                            Console.WriteLine("The socket is connected! {0}", s.RemoteEndPoint.ToString());
-                        }
-                        else
-                        {
-                            Console.WriteLine("Connect didn't work!");
+                System.Threading.Thread t = new System.Threading.Thread(DoConnect);
 
-                            s.Close();
-                            lock (mLock)
-                            {
-                                mbRetry = true;
-                            }
-                            return;
-                        }
-
-                        (ar.AsyncState as Socket).EndConnect(ar);
-                        lock (mLock)
-                        {
-                            Console.WriteLine("Connection happened!");
-                            mbConnected = true;
-                        }
-                    },
-                    mSocket);
+                t.Start();
             }
 
             internal bool Connected()
@@ -109,6 +86,29 @@ namespace p2pcopy.tcpholepunch
                     return mSocket;
                 }
             }
+
+            void DoConnect()
+            {
+                Console.WriteLine("Trying to connect");
+                try
+                {
+                    mSocket.Connect(mRemoteAddr, mRemotePort);
+
+                    lock (mLock)
+                    {
+                        mbConnected = true;
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+
+                    throw;
+                }
+            }
+
+            string mRemoteAddr;
+            int mRemotePort;
 
             Socket mSocket;
             bool mbConnected = false;
