@@ -14,10 +14,12 @@ namespace p2pcopy
 
             DateTime dateTime = DateTime.MinValue;
 
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create("http://nist.time.gov/actualtime.cgi?lzbc=siqm9b");
+            System.Net.ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls;
+
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create("https://nist.time.gov/actualtime.cgi?lzbc=siqm9b");
             request.Method = "GET";
             request.Accept = "text/html, application/xhtml+xml, */*";
-            request.UserAgent = "Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.1; Trident/6.0)";
+            request.UserAgent = "p2pcopy";
             request.ContentType = "application/x-www-form-urlencoded";
             request.CachePolicy = new RequestCachePolicy(RequestCacheLevel.NoCacheNoStore); //No caching
             HttpWebResponse response = (HttpWebResponse)request.GetResponse();
