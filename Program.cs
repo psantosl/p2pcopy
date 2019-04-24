@@ -3,11 +3,15 @@ using System.Net.Sockets;
 using System.Collections.Generic;
 using System.Net;
 using System.IO;
+using System.Threading;
+using PseudoTcp;
 
 namespace p2pcopy
 {
     class Program
     {
+        static bool testWithLocalhost = false;
+
         static void Main(string[] args)
         {
             CommandLineArguments cla = CommandLineArguments.Parse(args);
@@ -39,31 +43,45 @@ namespace p2pcopy
 
                 socket.Bind(new IPEndPoint(IPAddress.Any, cla.LocalPort));
 
-                P2pEndPoint p2pEndPoint = GetExternalEndPoint(socket);
+                PseudoTcpSocket connection;
+                if (false==testWithLocalhost) {
+                    P2pEndPoint p2pEndPoint = GetExternalEndPoint(socket);
 
-                if (p2pEndPoint == null)
-                    return;
+                    if (p2pEndPoint == null)
+                        return;
 
-                Console.WriteLine("Tell this to your peer: {0}", p2pEndPoint.External.ToString());
+                    Console.WriteLine("Tell this to your peer: {0}", p2pEndPoint.External.ToString());
 
-                Console.WriteLine();
-                Console.WriteLine();
+                    Console.WriteLine();
+                    Console.WriteLine();
 
-                Console.Write("Enter the ip:port of your peer: ");
-                string peer = Console.ReadLine();
+                    Console.Write("Enter the ip:port of your peer: ");
+                    string peer = Console.ReadLine();
 
-                if (string.IsNullOrEmpty(peer))
-                {
-                    Console.WriteLine("Invalid ip:port entered");
-                    return;
+                    if (string.IsNullOrEmpty(peer))
+                    {
+                        Console.WriteLine("Invalid ip:port entered");
+                        return;
+                    }
+
+                    // try again to connect to external to "reopen" port
+                    GetExternalEndPoint(socket);
+
+                    ParseRemoteAddr(peer, out remoteIp, out remotePort);
+
+                    connection = PeerConnect(
+                        p2pEndPoint.External.Address.ToString(), p2pEndPoint.External.Port, 
+                        socket, remoteIp, remotePort, cla);
                 }
-
-                // try again to connect to external to "reopen" port
-                GetExternalEndPoint(socket);
-
-                ParseRemoteAddr(peer, out remoteIp, out remotePort);
-
-                Udt.Socket connection = PeerConnect(socket, remoteIp, remotePort);
+                else {
+                    int localPortForTest = cla.Sender ? 12500 : 12501;
+                    int remotePortForTest = cla.Sender ? 12501 : 12500;
+                    connection = PeerConnect(
+                        "localhost", localPortForTest, 
+                        socket, "localhost", remotePortForTest, cla);
+                    remoteIp = "localhost";
+                }
+                Console.WriteLine("Called PeerConnect");
 
                 if (connection == null)
                 {
@@ -76,14 +94,15 @@ namespace p2pcopy
                     if (args[0] == "sender")
                     {
                         Sender.Run(connection, cla.File, cla.Verbose);
-                        return;
                     }
-
-                    Receiver.Run(connection);
+                    else
+                    {
+                        Receiver.Run(connection);
+                    }
                 }
                 finally
                 {
-                    connection.Close();
+                    connection.Close(false);
                 }
             }
             finally
@@ -132,6 +151,10 @@ namespace p2pcopy
                         case "--localport":
                             if (args.Length == i) return null;
                             result.LocalPort = int.Parse(args[i++]);
+                            break;
+                        case "--test-localhost":
+                            Console.WriteLine ("Testing using localhost:12500/1");
+                            testWithLocalhost = true;
                             break;
                         case "help":
                             return null;
@@ -191,41 +214,59 @@ namespace p2pcopy
             return next - now.Second;
         }
 
-        static Udt.Socket PeerConnect(Socket socket, string remoteAddr, int remotePort)
+        static PseudoTcpSocket PeerConnect(string localAddr, int localPort,
+                                            Socket socket, string remoteAddr, int remotePort,
+                                            CommandLineArguments cla)
         {
             bool bConnected = false;
             int retry = 0;
 
-            Udt.Socket client = null;
+            PseudoTcpSocket client = null;
 
             while (!bConnected)
             {
                 try
                 {
+                    Console.WriteLine("Getting internet time");
                     DateTime now = InternetTime.Get();
 
-                    int sleepTimeToSync = SleepTime(now);
+                    int sleepTimeToSync = SleepTime(now) + (cla.Sender ? 1:0);
 
                     Console.WriteLine("[{0}] - Waiting {1} sec to sync with other peer",
                         now.ToLongTimeString(),
                         sleepTimeToSync);
                     System.Threading.Thread.Sleep(sleepTimeToSync * 1000);
 
-                    GetExternalEndPoint(socket);
+                    if (false==testWithLocalhost) {
+                        GetExternalEndPoint(socket);
+                    }
+                        
+                    PseudoTcpSocket.Callbacks cbs = new PseudoTcpSocket.Callbacks();
+                    UdpCallbacks icbs = new UdpCallbacks();
+                    cbs.WritePacket = icbs.WritePacket;
+                    cbs.PseudoTcpOpened = icbs.Opened;
+                    cbs.PseudoTcpWritable = icbs.Writable;
+                    cbs.PseudoTcpClosed = icbs.Closed;
+                    client = PseudoTcpSocket.Create(0, cbs);
+                    client.NotifyMtu(1496); // Per PseudoTcpTests
+                    icbs.Init(localAddr, localPort, remoteAddr, remotePort, client);
+                    PLog.DEBUG("Created PseudoTcpSocket");
 
-                    if (client != null)
-                        client.Close();
-
-                    client = new Udt.Socket(AddressFamily.InterNetwork, SocketType.Stream);
-
-                    client.SetSocketOption(Udt.SocketOptionName.Rendezvous, true);
-
-                    client.Bind(socket);
-
-                    Console.Write("\r{0} - Trying to connect to {1}:{2}.  ",
+                    Console.WriteLine("\r{0} - Trying to connect to {1}:{2}.  ",
                         retry++, remoteAddr, remotePort);
 
-                    client.Connect(remoteAddr, remotePort);
+                    if (cla.Sender) {
+                        PLog.DEBUG("Sender: calling PseudoTcpSocket.Connect");
+                        client.Connect();
+                    }
+
+                    while (PseudoTcpSocket.PseudoTcpState.Values.TCP_ESTABLISHED != client.priv.state) {
+                        Console.WriteLine("Waiting for TCP_ESTABLISHED...");
+                        if (PseudoTcpSocket.PseudoTcpState.Values.TCP_ESTABLISHED != client.priv.state)
+                        {
+                            Thread.Sleep(500);
+                        }
+                    }
 
                     Console.WriteLine("Connected successfully to {0}:{1}",
                         remoteAddr, remotePort);
@@ -234,7 +275,9 @@ namespace p2pcopy
                 }
                 catch (Exception e)
                 {
-                    Console.Write(e.Message.Replace(Environment.NewLine, ". "));
+                    Console.WriteLine(e.Message.Replace(Environment.NewLine, ". "));
+                    Console.WriteLine (e.StackTrace);
+                    Console.WriteLine ("Inner exception=" + e.InnerException);
                 }
             }
 
