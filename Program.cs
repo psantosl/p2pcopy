@@ -28,6 +28,7 @@ namespace p2pcopy
             Socket socket = new Socket(
                 AddressFamily.InterNetwork,
                 SocketType.Dgram, ProtocolType.Udp);
+                socket.SetSocketOption (SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
 
             try
             {
@@ -46,6 +47,9 @@ namespace p2pcopy
                 PseudoTcpSocket connection;
                 if (false==testWithLocalhost) {
                     P2pEndPoint p2pEndPoint = GetExternalEndPoint(socket);
+
+                    Console.WriteLine("p2pEndPoint external=" + p2pEndPoint.External);
+                    Console.WriteLine("p2pEndPoint internal=" + p2pEndPoint.Internal);
 
                     if (p2pEndPoint == null)
                         return;
@@ -230,7 +234,7 @@ namespace p2pcopy
                     Console.WriteLine("Getting internet time");
                     DateTime now = InternetTime.Get();
 
-                    int sleepTimeToSync = SleepTime(now) + (cla.Sender ? 1:0);
+                    int sleepTimeToSync = SleepTime(now);
 
                     Console.WriteLine("[{0}] - Waiting {1} sec to sync with other peer",
                         now.ToLongTimeString(),
@@ -238,7 +242,9 @@ namespace p2pcopy
                     System.Threading.Thread.Sleep(sleepTimeToSync * 1000);
 
                     if (false==testWithLocalhost) {
+                        Console.WriteLine ("Before 2nd call to GetExternalEndPoint, socket.LocalEndPoint=" + socket.LocalEndPoint);
                         GetExternalEndPoint(socket);
+                        Console.WriteLine ("After 2nd call to GetExternalEndPoint, socket.localEndPoint=" + socket.LocalEndPoint);
                     }
                         
                     PseudoTcpSocket.Callbacks cbs = new PseudoTcpSocket.Callbacks();
@@ -249,7 +255,7 @@ namespace p2pcopy
                     cbs.PseudoTcpClosed = icbs.Closed;
                     client = PseudoTcpSocket.Create(0, cbs);
                     client.NotifyMtu(1496); // Per PseudoTcpTests
-                    icbs.Init(localAddr, localPort, remoteAddr, remotePort, client);
+                    icbs.Init(localAddr, localPort, remoteAddr, remotePort, client, socket);
                     PLog.DEBUG("Created PseudoTcpSocket");
 
                     Console.WriteLine("\r{0} - Trying to connect to {1}:{2}.  ",

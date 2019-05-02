@@ -17,36 +17,48 @@ namespace p2pcopy
         int localPort;
         string remoteAddr;
         int remotePort;
-        UdpClient udpcTx;
-        UdpClient udpcRx;
+        UdpClient udpc;
         IPEndPoint rxEndpoint;
+        Socket underlyingSock;
 
         public void Init (
             string localAddr, int localPort, string remoteAddr, int remotePort,
-            PseudoTcpSocket pseudoSock)
+			PseudoTcpSocket pseudoSock, Socket underlyingSock)
         {
             this.localAddr = localAddr;
             this.localPort = localPort;
             this.remoteAddr = remoteAddr;
             this.remotePort = remotePort;
             this.pseudoSock = pseudoSock;
+            this.underlyingSock = underlyingSock;
 
-            udpcTx = new UdpClient (remoteAddr, remotePort);
-            rxEndpoint = new IPEndPoint(IPAddress.Any, localPort);
-            udpcRx = new UdpClient(rxEndpoint);
+            udpc = new UdpClient();
+            udpc.Client = underlyingSock;
+            udpc.Connect (new IPEndPoint (IPAddress.Parse(remoteAddr), remotePort));
+            rxEndpoint = (IPEndPoint)underlyingSock.LocalEndPoint;
+
+            Console.WriteLine("After reusing existing sock:");
+            Console.WriteLine ("UdpClient.Client.LocalEndPoint=" + udpc.Client.LocalEndPoint);
+            Console.WriteLine ("UdpClient.Client.RemoteEndPoint=" + udpc.Client.RemoteEndPoint);
+            Console.WriteLine ("underlyingSock.LocalEndPoint=" + underlyingSock.LocalEndPoint);
 
             BeginReceive();
         }
             
         public void BeginReceive()
         {
-            udpcRx.BeginReceive(new AsyncCallback(MessageReceived), null);
+            udpc.BeginReceive(new AsyncCallback(MessageReceived), null);
             PLog.DEBUG("Listening on UDP port {0}", localPort);
         }
 
         public void MessageReceived(IAsyncResult ar)
         {
-            byte[] receiveBytes = udpcRx.EndReceive(ar, ref rxEndpoint);
+            // Can happen during shutdown
+            if (false==this.underlyingSock.Connected) {
+                return;
+            }
+
+            byte[] receiveBytes = udpc.EndReceive(ar, ref rxEndpoint);
             PLog.DEBUG($"Received {0} bytes", receiveBytes.Length);
                 
             SyncPseudoTcpSocket.NotifyPacket(pseudoSock, receiveBytes, (uint)receiveBytes.Length);
@@ -63,7 +75,7 @@ namespace p2pcopy
         {
             try
             {
-                this.udpcTx.Send(buffer, (int)len);
+                this.udpc.Send(buffer, (int)len);
                 PLog.DEBUG("Sent {0} bytes to UDPClient at {1}:{2}", len, remoteAddr, remotePort);
                 return PseudoTcpSocket.WriteResult.WR_SUCCESS;
             }
