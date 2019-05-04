@@ -21,8 +21,11 @@ namespace p2pcopy
             long got = 0;
 
             byte[] fnlBytes = new byte[4];
-            got = SyncPseudoTcpSocket.Recv(conn,fnlBytes,4);
-            PLog.DEBUG ("Reading filename length, got={0}", got);
+            do {
+                got = SyncPseudoTcpSocket.Recv(conn,fnlBytes,4);
+                PLog.DEBUG ("Reading filename length, got={0}", got);
+                UdpCallbacks.PollingSleep (got, -1);
+            } while (got == -1);
             SyncPseudoTcpSocket.Send(conn,ackBuffer,1);
             uint fileNameLengthBytes = (uint)BitConverter.ToInt32 (fnlBytes, 0);
             PLog.DEBUG ("Got filename length=" + fileNameLengthBytes);
@@ -31,7 +34,7 @@ namespace p2pcopy
             do {
                 got = SyncPseudoTcpSocket.Recv (conn,fnBytes, fileNameLengthBytes);
                 PLog.DEBUG ("Reading filename, got={0}", got);
-                UdpCallbacks.CondSleep (50, got, -1);
+                UdpCallbacks.PollingSleep (got, -1);
             } while (got == -1);
             SyncPseudoTcpSocket.Send(conn,ackBuffer,1);
             PLog.DEBUG ("filename bytes=" + BitConverter.ToString(fnBytes));
@@ -42,7 +45,7 @@ namespace p2pcopy
             do {
                 got = SyncPseudoTcpSocket.Recv(conn,fileSizeBytes, (uint)fileSizeBytes.Length);
                 PLog.DEBUG ("Reading file size, got={0}", got);
-                UdpCallbacks.CondSleep(50, got, -1);
+                UdpCallbacks.PollingSleep(got, -1);
             } while (got == -1);
             SyncPseudoTcpSocket.Send(conn, ackBuffer,1);
             long size = (long)BitConverter.ToInt64 (fileSizeBytes, 0);
@@ -61,16 +64,14 @@ namespace p2pcopy
                 while (read < size)
                 {
                     do {
-                        PLog.DEBUG("Reading file data... so far total read={0}", read);
+                        PLog.DEBUG("{0} Reading file data... so far total read={1}", Environment.TickCount, read);
                         len = SyncPseudoTcpSocket.Recv (conn, buffer, (uint)buffer.Length);
-                        UdpCallbacks.CondSleep(50, len, -1);
+                        UdpCallbacks.PollingSleep(len, -1);
                     } while (len == -1);
 
                     PLog.DEBUG ("Read {0} bytes of file data", len);
                     fileStream.Write(buffer, 0, (int)len);
                     read += len;
-
-                    SyncPseudoTcpSocket.Send(conn, ackBuffer,1);
 
                     ConsoleProgress.Draw(i++, read, size, ini, Console.WindowWidth / 2);
                 }

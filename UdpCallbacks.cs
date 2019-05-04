@@ -12,18 +12,24 @@ namespace p2pcopy
 {
     public class UdpCallbacks
     {
+        const int NAT_TRAVERSAL_TRIES = 5;
+        const int MAX_TRAVERSAL_TIME = 5000;
+        const int PUNCH_PKTS_PER_TRY = 5;
+        byte[] PUNCH_PKT = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+
         PseudoTcpSocket pseudoSock;
         string localAddr;
         int localPort;
         string remoteAddr;
         int remotePort;
         UdpClient udpc;
-        IPEndPoint rxEndpoint;
+        IPEndPoint endReceiveRemoteEP;
         Socket underlyingSock;
 
-        public void Init (
+        public bool Init (
             string localAddr, int localPort, string remoteAddr, int remotePort,
-			PseudoTcpSocket pseudoSock, Socket underlyingSock)
+            PseudoTcpSocket pseudoSock, Socket underlyingSock,
+            bool isSender)
         {
             this.localAddr = localAddr;
             this.localPort = localPort;
@@ -35,16 +41,77 @@ namespace p2pcopy
             udpc = new UdpClient();
             udpc.Client = underlyingSock;
             udpc.Connect (new IPEndPoint (IPAddress.Parse(remoteAddr), remotePort));
-            rxEndpoint = (IPEndPoint)underlyingSock.LocalEndPoint;
+            endReceiveRemoteEP = new IPEndPoint(IPAddress.Any,0);
 
             Console.WriteLine("After reusing existing sock:");
             Console.WriteLine ("UdpClient.Client.LocalEndPoint=" + udpc.Client.LocalEndPoint);
             Console.WriteLine ("UdpClient.Client.RemoteEndPoint=" + udpc.Client.RemoteEndPoint);
             Console.WriteLine ("underlyingSock.LocalEndPoint=" + underlyingSock.LocalEndPoint);
 
-            BeginReceive();
+            if (TryNatTraversal (isSender))
+            {
+                BeginReceive();
+                return true;
+            }
+            else
+            {
+                Console.WriteLine("NAT traversal failed");
+                return false;
+            }
         }
-            
+
+        private bool TryNatTraversal(bool isSender)
+        {
+            Console.WriteLine ("Attempting NAT traversal:");
+            bool success = false;
+            int traversalStart = Environment.TickCount;
+            for (int i = 0;
+                    i < NAT_TRAVERSAL_TRIES && Environment.TickCount < traversalStart + MAX_TRAVERSAL_TIME;
+                    i++) {
+                try {
+                    IPEndPoint ep = new IPEndPoint (IPAddress.Parse (localAddr), localPort);
+                    if (false == isSender) {
+                        SendPunchPackets();
+                        success = ReceivePunchPackets(traversalStart);
+                    } else {
+                        success = ReceivePunchPackets(traversalStart);
+                        SendPunchPackets();
+                    }
+                } catch (Exception e) {
+                    PLog.DEBUG ("Exception {0}", e);
+                }
+            }
+
+            Console.WriteLine("\nNAT traversal pass {0}", success ? "succeeded":"failed");
+            return success;
+        }
+
+        private void SendPunchPackets()
+        {
+            for (int j=0; j<PUNCH_PKTS_PER_TRY; j++)
+            {
+                Console.Write (" >");
+                udpc.Send (PUNCH_PKT, PUNCH_PKT.Length);
+            }
+            PLog.DEBUG ("\nSent punch packets");
+        }
+
+        private bool ReceivePunchPackets(int traversalStart)
+        {
+            IPEndPoint ep = new IPEndPoint(IPAddress.Any,0);
+            byte[] punch;
+            int rxCount = 0;
+            do {
+                Console.Write (" <");
+                punch = udpc.Receive (ref ep);
+                rxCount += (ep.Equals(udpc.Client.RemoteEndPoint) && punch.Length == PUNCH_PKT.Length) ? 1:0;
+                PLog.DEBUG ("\nReceived, endpoint now=" + ep + " received size=" + punch.Length);
+            } while (rxCount < PUNCH_PKTS_PER_TRY && Environment.TickCount < traversalStart+MAX_TRAVERSAL_TIME);
+            PLog.DEBUG ("Received punch packets");
+
+            return rxCount >= PUNCH_PKTS_PER_TRY;
+        }
+
         public void BeginReceive()
         {
             udpc.BeginReceive(new AsyncCallback(MessageReceived), null);
@@ -58,8 +125,8 @@ namespace p2pcopy
                 return;
             }
 
-            byte[] receiveBytes = udpc.EndReceive(ar, ref rxEndpoint);
-            PLog.DEBUG($"Received {0} bytes", receiveBytes.Length);
+            byte[] receiveBytes = udpc.EndReceive(ar, ref endReceiveRemoteEP);
+            PLog.DEBUG($"Received {0} bytes from {1}", receiveBytes.Length, endReceiveRemoteEP);
                 
             SyncPseudoTcpSocket.NotifyPacket(pseudoSock, receiveBytes, (uint)receiveBytes.Length);
             SyncPseudoTcpSocket.NotifyClock(pseudoSock);
@@ -105,7 +172,7 @@ namespace p2pcopy
         {
             ulong timeout = 0;
 
-            if (sock.GetNextClock(ref timeout))
+            if (SyncPseudoTcpSocket.GetNextClock(sock, ref timeout))
             {
                 uint now = PseudoTcpSocket.GetMonotonicTime();
 
@@ -148,6 +215,11 @@ namespace p2pcopy
             //g_debug ("Socket %p: Notifying clock", sock);
             SyncPseudoTcpSocket.NotifyClock(sock);
             AdjustClock(sock);
+        }
+
+        public static void PollingSleep(long value, long sleepIf)
+        {
+            CondSleep (50, value, sleepIf);
         }
 
         public static void CondSleep(int sleep, long value, long sleepIf)

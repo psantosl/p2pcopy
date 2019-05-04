@@ -104,30 +104,14 @@ namespace p2pcopy
 
         static int SendFragment(PseudoTcpSocket conn, byte[] buffer, int fragmentSize)
         {
-            int got;
             int sent;
             do {
-                do {
-                    PLog.DEBUG ("Trying to send {0} bytes", fragmentSize);
-                    sent = SyncPseudoTcpSocket.Send (conn, buffer, (uint)fragmentSize);
-                    UdpCallbacks.AdjustClock(conn);
-                    UdpCallbacks.CondSleep (50, sent, -1);
-                } while (sent == -1);
-                PLog.DEBUG ("Tried sending fragment sized {0} with result {1}", fragmentSize, sent);
-
-                int start = Environment.TickCount;
-                do {
-                    PLog.DEBUG ("Waiting for ack for fragment");
-                    got = SyncPseudoTcpSocket.Recv (conn, ackBuffer, 1);
-                    UdpCallbacks.CondSleep (50, got, -1);
-                } while (got == -1 && Environment.TickCount < start + 5000);
-
-                if (1 == ackBuffer [0] && 1 == got) {
-                    PLog.DEBUG ("Received ack==1 ok");
-                } else {
-                    Console.WriteLine ("Error in transmission, will retry");
-                }
-            } while (-1 == got);
+                PLog.DEBUG ("Trying to send {0} bytes", fragmentSize);
+                sent = SyncPseudoTcpSocket.Send (conn, buffer, (uint)fragmentSize);
+                UdpCallbacks.AdjustClock(conn);
+                UdpCallbacks.PollingSleep (sent, -1);
+            } while (sent == -1);
+            PLog.DEBUG ("Tried sending fragment sized {0} with result {1}", fragmentSize, sent);
 
             return sent;
         }
