@@ -57,6 +57,7 @@
     <Compile Include="PLog.cs" />
     <Compile Include="SyncPseudoTcpSocket.cs" />
     <Compile Include="UdpCallbacks.cs" />
+    <Compile Include="Config.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">

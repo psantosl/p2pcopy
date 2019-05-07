@@ -7,19 +7,17 @@ using System.Net.Sockets;
 using System.Net;
 using System.Text;
 using System.Threading;
+using System.Collections;
 
 namespace p2pcopy
 {
     public class UdpCallbacks
     {
-        const int NAT_TRAVERSAL_TRIES = 5;
-        const int MAX_TRAVERSAL_TIME = 5000;
-        const int PUNCH_PKTS_PER_TRY = 5;
         byte[] PUNCH_PKT = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
         PseudoTcpSocket pseudoSock;
-        string localAddr;
-        int localPort;
+        string externalAddr;
+        int externalPort;
         string remoteAddr;
         int remotePort;
         UdpClient udpc;
@@ -27,12 +25,12 @@ namespace p2pcopy
         Socket underlyingSock;
 
         public bool Init (
-            string localAddr, int localPort, string remoteAddr, int remotePort,
+            string externalAddr, int externalPort, string remoteAddr, int remotePort,
             PseudoTcpSocket pseudoSock, Socket underlyingSock,
-            bool isSender)
+            bool isSender, int nextTimeToSync)
         {
-            this.localAddr = localAddr;
-            this.localPort = localPort;
+            this.externalAddr = externalAddr;
+            this.externalPort = externalPort;
             this.remoteAddr = remoteAddr;
             this.remotePort = remotePort;
             this.pseudoSock = pseudoSock;
@@ -48,7 +46,7 @@ namespace p2pcopy
             Console.WriteLine ("UdpClient.Client.RemoteEndPoint=" + udpc.Client.RemoteEndPoint);
             Console.WriteLine ("underlyingSock.LocalEndPoint=" + underlyingSock.LocalEndPoint);
 
-            if (TryNatTraversal (isSender))
+            if (TryNatTraversal (isSender, nextTimeToSync))
             {
                 BeginReceive();
                 return true;
@@ -60,22 +58,21 @@ namespace p2pcopy
             }
         }
 
-        private bool TryNatTraversal(bool isSender)
+        private bool TryNatTraversal(bool isSender, int timeToSync)
         {
             Console.WriteLine ("Attempting NAT traversal:");
             bool success = false;
             int traversalStart = Environment.TickCount;
             for (int i = 0;
-                    i < NAT_TRAVERSAL_TRIES && Environment.TickCount < traversalStart + MAX_TRAVERSAL_TIME;
+                    i < Config.NAT_TRAVERSAL_TRIES && Environment.TickCount < traversalStart + Config.MAX_TRAVERSAL_TIME;
                     i++) {
                 try {
-                    IPEndPoint ep = new IPEndPoint (IPAddress.Parse (localAddr), localPort);
                     if (false == isSender) {
-                        SendPunchPackets();
-                        success = ReceivePunchPackets(traversalStart);
+                        SendPunchPackets(timeToSync);
+                        success = ReceivePunchPackets(traversalStart, timeToSync);
                     } else {
-                        success = ReceivePunchPackets(traversalStart);
-                        SendPunchPackets();
+                        success = ReceivePunchPackets(traversalStart, timeToSync);
+                        SendPunchPackets(timeToSync);
                     }
                 } catch (Exception e) {
                     PLog.DEBUG ("Exception {0}", e);
@@ -86,17 +83,22 @@ namespace p2pcopy
             return success;
         }
 
-        private void SendPunchPackets()
+        private void SendPunchPackets(int timeToSync)
         {
-            for (int j=0; j<PUNCH_PKTS_PER_TRY; j++)
+            // Label punch packet with starting time of sync attempt
+            byte[] punch = new byte[PUNCH_PKT.Length];
+            Buffer.BlockCopy(PUNCH_PKT, 0, punch, 0, PUNCH_PKT.Length);
+            punch[0] = (byte)timeToSync;
+
+            for (int j=0; j<Config.PUNCH_PKTS_PER_TRY; j++)
             {
                 Console.Write (" >");
-                udpc.Send (PUNCH_PKT, PUNCH_PKT.Length);
+                udpc.Send (punch, punch.Length);
             }
             PLog.DEBUG ("\nSent punch packets");
         }
 
-        private bool ReceivePunchPackets(int traversalStart)
+        private bool ReceivePunchPackets(int traversalStart, int timeToSync)
         {
             IPEndPoint ep = new IPEndPoint(IPAddress.Any,0);
             byte[] punch;
@@ -104,18 +106,36 @@ namespace p2pcopy
             do {
                 Console.Write (" <");
                 punch = udpc.Receive (ref ep);
-                rxCount += (ep.Equals(udpc.Client.RemoteEndPoint) && punch.Length == PUNCH_PKT.Length) ? 1:0;
-                PLog.DEBUG ("\nReceived, endpoint now=" + ep + " received size=" + punch.Length);
-            } while (rxCount < PUNCH_PKTS_PER_TRY && Environment.TickCount < traversalStart+MAX_TRAVERSAL_TIME);
-            PLog.DEBUG ("Received punch packets");
+                rxCount += (ep.Equals(udpc.Client.RemoteEndPoint) && IsPunchPacket(punch, timeToSync)) ? 1:0;
+                PLog.DEBUG ("\nReceived pkt, endpoint now={0}, received size={1}", punch, punch.Length);
+            } while (rxCount < Config.PUNCH_PKTS_PER_TRY && Environment.TickCount < traversalStart+Config.MAX_TRAVERSAL_TIME);
+            PLog.DEBUG ("Received {0} punch packets", rxCount);
 
-            return rxCount >= PUNCH_PKTS_PER_TRY;
+            return rxCount >= Config.PUNCH_PKTS_PER_TRY;
+        }
+
+        private bool IsPunchPacket(byte[] pkt, int timeToSync)
+        {
+            if (pkt.Length != PUNCH_PKT.Length || pkt [0] != (byte)timeToSync)
+            {
+                return false;
+            }
+            else
+            {
+                for (int i = 1; i < pkt.Length; i++)
+                {
+                    if (pkt [i] != PUNCH_PKT [i])
+                        return false;
+                }
+            }
+
+            return true;
         }
 
         public void BeginReceive()
         {
             udpc.BeginReceive(new AsyncCallback(MessageReceived), null);
-            PLog.DEBUG("Listening on UDP port {0}", localPort);
+            PLog.DEBUG("Listening on UDP endpoint {0}", underlyingSock.LocalEndPoint);
         }
 
         public void MessageReceived(IAsyncResult ar)
@@ -126,7 +146,7 @@ namespace p2pcopy
             }
 
             byte[] receiveBytes = udpc.EndReceive(ar, ref endReceiveRemoteEP);
-            PLog.DEBUG($"Received {0} bytes from {1}", receiveBytes.Length, endReceiveRemoteEP);
+            PLog.DEBUG("Received {0} bytes from {1}", receiveBytes.Length, endReceiveRemoteEP);
                 
             SyncPseudoTcpSocket.NotifyPacket(pseudoSock, receiveBytes, (uint)receiveBytes.Length);
             SyncPseudoTcpSocket.NotifyClock(pseudoSock);
@@ -168,12 +188,13 @@ namespace p2pcopy
             PLog.DEBUG ("UdpCallbacks.Writeable");
         }
 
-        public static void AdjustClock(PseudoTcp.PseudoTcpSocket sock)
+        public static void AdjustClock(PseudoTcp.PseudoTcpSocket sock, Queue notifyClockQueue)
         {
             ulong timeout = 0;
 
             if (SyncPseudoTcpSocket.GetNextClock(sock, ref timeout))
             {
+                PLog.DEBUG ("AdjustClock: GetNextClock={0}", timeout);
                 uint now = PseudoTcpSocket.GetMonotonicTime();
 
                 if (now < timeout)
@@ -181,40 +202,24 @@ namespace p2pcopy
                 else
                     timeout = now - timeout;
 
-                if (timeout > 900)
-                    timeout = 100;
+                //Console.WriteLine ("...original timeout={0}", timeout);
+
+                //if (timeout > 900)
+                //    timeout = 100;
 
                 /// Console.WriteLine ("Socket {0}: Adjusting clock to {1} ms", sock, timeout);
 
-                Timer timer = null;
-                timer = new System.Threading.Timer(
-                    (obj) =>
-                    {
-                        NotifyClock(sock);
-
-                        // Very occasionally null (why?)
-                        if (null!= timer) {
-                            timer.Dispose();
-                        }
-                    },
-                    null,
-                    (long)timeout,
-                    Timeout.Infinite);
+                notifyClockQueue.Enqueue (Environment.TickCount + (int)timeout);
             }
             else
             {
+                PLog.DEBUG ("AdjustClock: didnt get timeout");
+
                 /*left_closed = true;
 
                         if (left_closed && right_closed)
                             g_main_loop_quit (mainloop);*/
             }
-        }
-
-        static void NotifyClock(PseudoTcp.PseudoTcpSocket sock)
-        {
-            //g_debug ("Socket %p: Notifying clock", sock);
-            SyncPseudoTcpSocket.NotifyClock(sock);
-            AdjustClock(sock);
         }
 
         public static void PollingSleep(long value, long sleepIf)

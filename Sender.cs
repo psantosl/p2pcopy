@@ -6,12 +6,14 @@ using System.Text;
 using System.Threading.Tasks;
 using PseudoTcp;
 using System.Threading;
+using System.Collections;
 
 namespace p2pcopy
 {
     static class Sender
     {
         static byte[] ackBuffer = new byte[1];
+        static Queue notifyClockQueue = new Queue();
 
         static internal void Run(PseudoTcpSocket conn, string file, bool bVerbose)
         {
@@ -50,6 +52,8 @@ namespace p2pcopy
 
                 while (pos < fileSize)
                 {
+                    ProcessNotifyClockQueue (conn);
+                    
                     int toSend = buffer.Length < (fileSize - pos)
                         ? buffer.Length
                         : (int)(fileSize - pos);
@@ -67,6 +71,7 @@ namespace p2pcopy
                         sent = SendFragment (conn, buffer, fragmentSize);
 
                         totalSent += sent;
+                        PLog.DEBUG ("totalSent={0} sent={1} fragmentSize={2}",totalSent, sent, fragmentSize);
                         if (sent < fragmentSize) {
                             byte[] buffer2 = new byte[fragmentSize-sent];
                             Buffer.BlockCopy(buffer, sent, buffer2, 0, buffer2.Length);
@@ -74,6 +79,7 @@ namespace p2pcopy
                             buffer = buffer2;
                         }
                     }
+                    PLog.DEBUG("finished sending toSend={0}", toSend);
 
                     pos += toSend;
 
@@ -94,12 +100,48 @@ namespace p2pcopy
                 }
             }
 
-            // TODO wait for confirmation all packets sent, either check PseudoTcpSocket queue,
-            // or a final ack from receiver
-            Thread.Sleep (15000); 
+            Console.WriteLine ();
+            while (conn.priv.sbuf.data_length != 0)
+            {
+                Console.WriteLine ("Waiting for buffered data to finish sending...");
+                for (int i = 0; i < 20; i++) 
+                {
+                    conn.NotifyClock();
+                    Thread.Sleep (50);
+                }
+            }
 
             Console.WriteLine ();
             Console.WriteLine ("Done!");
+        }
+
+        static void ProcessNotifyClockQueue(PseudoTcpSocket conn)
+        {
+            PLog.DEBUG ("Entering ProcessNotifyClockQueue with queue size={0}", notifyClockQueue.Count);
+            if (notifyClockQueue.Count != 0) {
+                PLog.DEBUG ("...and head timestamp={0}, current time={1}", notifyClockQueue.Peek (), Environment.TickCount);
+            }
+
+            if (notifyClockQueue.Count == 0)
+            {
+                UdpCallbacks.AdjustClock (conn, notifyClockQueue);
+                return;
+            }
+
+            bool keepChecking = true;
+            while (keepChecking && notifyClockQueue.Count > 0)
+            {
+                int iTimestamp = (int)notifyClockQueue.Peek();
+                if (Environment.TickCount > iTimestamp)
+                {
+                    SyncPseudoTcpSocket.NotifyClock (conn);
+                    notifyClockQueue.Dequeue ();
+                }
+                else
+                {
+                    keepChecking = false;
+                }                           
+            }
         }
 
         static int SendFragment(PseudoTcpSocket conn, byte[] buffer, int fragmentSize)
@@ -108,7 +150,14 @@ namespace p2pcopy
             do {
                 PLog.DEBUG ("Trying to send {0} bytes", fragmentSize);
                 sent = SyncPseudoTcpSocket.Send (conn, buffer, (uint)fragmentSize);
-                UdpCallbacks.AdjustClock(conn);
+
+                if (sent==-1) {
+                    PLog.DEBUG("sent==-1 so processing notifyClockQueue");
+                    ProcessNotifyClockQueue(conn);
+                }
+                else {
+                    UdpCallbacks.AdjustClock(conn, notifyClockQueue);
+                }
                 UdpCallbacks.PollingSleep (sent, -1);
             } while (sent == -1);
             PLog.DEBUG ("Tried sending fragment sized {0} with result {1}", fragmentSize, sent);

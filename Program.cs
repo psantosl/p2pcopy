@@ -26,7 +26,7 @@ namespace p2pcopy
             Socket socket = new Socket(
                 AddressFamily.InterNetwork,
                 SocketType.Dgram, ProtocolType.Udp);
-                socket.SetSocketOption (SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+            socket.SetSocketOption (SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
 
             try
             {
@@ -192,16 +192,16 @@ namespace p2pcopy
             };
         }
 
-        static int SleepTime(DateTime now)
+        static int NextTime(DateTime now)
         {
-            List<int> seconds = new List<int>() {10, 20, 30, 40, 50, 60};
+            List<int> seconds = Config.CONNECTION_SYNC_TIMES;
 
             int next = seconds.Find(x => x > now.Second);
 
-            return next - now.Second;
+            return next;
         }
 
-        static PseudoTcpSocket PeerConnect(string localAddr, int localPort,
+        static PseudoTcpSocket PeerConnect(string externalAddr, int externalPort,
                                             Socket socket, string remoteAddr, int remotePort,
                                             CommandLineArguments cla)
         {
@@ -217,17 +217,13 @@ namespace p2pcopy
                     Console.WriteLine("Getting internet time");
                     DateTime now = InternetTime.Get();
 
-                    int sleepTimeToSync = SleepTime(now);
+                    int nextTimeToSync = NextTime(now);
+                    int sleepTimeToSync = nextTimeToSync - now.Second;
 
                     Console.WriteLine("[{0}] - Waiting {1} sec to sync with other peer",
                         now.ToLongTimeString(),
                         sleepTimeToSync);
                     System.Threading.Thread.Sleep(sleepTimeToSync * 1000);
-
-                    Console.WriteLine ("Before 2nd call to GetExternalEndPoint, socket.LocalEndPoint=" + socket.LocalEndPoint);
-                    P2pEndPoint sanity = GetExternalEndPoint(socket);
-                    Console.WriteLine ("After 2nd call to GetExternalEndPoint, socket.localEndPoint=" + socket.LocalEndPoint);
-                    Console.WriteLine(" and external endpoint=" + ((sanity!=null) ? sanity.External.ToString():"null"));
                         
                     PseudoTcpSocket.Callbacks cbs = new PseudoTcpSocket.Callbacks();
                     UdpCallbacks icbs = new UdpCallbacks();
@@ -237,7 +233,8 @@ namespace p2pcopy
                     cbs.PseudoTcpClosed = icbs.Closed;
                     client = PseudoTcpSocket.Create(0, cbs);
                     client.NotifyMtu(1496); // Per PseudoTcpTests
-                    bool success = icbs.Init(localAddr, localPort, remoteAddr, remotePort, client, socket, cla.Sender);
+                    bool success = icbs.Init(externalAddr, externalPort, remoteAddr, remotePort, 
+                        client, socket, cla.Sender, nextTimeToSync);
                     if (false==success)
                     {
                         continue;
@@ -262,7 +259,7 @@ namespace p2pcopy
                             bConnected = true;
                         }
                         else {
-                            if (Environment.TickCount > startTime+5000) {
+                            if (Environment.TickCount > startTime + Config.MAX_TCP_HANDSHAKE_TIME) {
                                 Console.WriteLine("5 secs timed out with priv.state={0}", client.priv.state);
                                 break;
                             }
