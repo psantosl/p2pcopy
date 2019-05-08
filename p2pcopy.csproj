@@ -51,7 +51,7 @@
     <Compile Include="Sender.cs" />
     <Compile Include="SizeConverter.cs" />
     <Compile Include="StunClient.cs" />
-    <Compile Include="..\PseudoTcpSharp\pseudotcp.cs">
+    <Compile Include=".\PseudoTcpSharp\pseudotcp.cs">
       <Link>pseudotcp.cs</Link>
     </Compile>
     <Compile Include="PLog.cs" />
