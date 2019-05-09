@@ -12,12 +12,10 @@ namespace p2pcopy
 {
     static class Sender
     {
-        static byte[] ackBuffer = new byte[1];
-        static Queue notifyClockQueue = new Queue();
-
         static internal void Run(PseudoTcpSocket conn, string file, bool bVerbose)
         {
             int ini = Environment.TickCount;
+            Queue notifyClockQueue = new Queue();
 
             using (FileStream fileReader = new FileStream(file, FileMode.Open, FileAccess.Read))
             {
@@ -52,7 +50,7 @@ namespace p2pcopy
 
                 while (pos < fileSize)
                 {
-                    ProcessNotifyClockQueue (conn);
+                    ProcessNotifyClockQueue (conn, notifyClockQueue);
                     
                     int toSend = buffer.Length < (fileSize - pos)
                         ? buffer.Length
@@ -68,7 +66,7 @@ namespace p2pcopy
                     int totalSent = 0;
                     int fragmentSize = toSend;
                     while (totalSent < toSend) {
-                        sent = SendFragment (conn, buffer, fragmentSize);
+                        sent = SendFragment (conn, buffer, fragmentSize, notifyClockQueue);
 
                         totalSent += sent;
                         PLog.DEBUG ("totalSent={0} sent={1} fragmentSize={2}",totalSent, sent, fragmentSize);
@@ -115,7 +113,7 @@ namespace p2pcopy
             Console.WriteLine ("Done!");
         }
 
-        static void ProcessNotifyClockQueue(PseudoTcpSocket conn)
+        static void ProcessNotifyClockQueue(PseudoTcpSocket conn, Queue notifyClockQueue)
         {
             PLog.DEBUG ("Entering ProcessNotifyClockQueue with queue size={0}", notifyClockQueue.Count);
             if (notifyClockQueue.Count != 0) {
@@ -144,7 +142,7 @@ namespace p2pcopy
             }
         }
 
-        static int SendFragment(PseudoTcpSocket conn, byte[] buffer, int fragmentSize)
+        static int SendFragment(PseudoTcpSocket conn, byte[] buffer, int fragmentSize, Queue notifyClockQueue)
         {
             int sent;
             do {
@@ -153,7 +151,7 @@ namespace p2pcopy
 
                 if (sent==-1) {
                     PLog.DEBUG("sent==-1 so processing notifyClockQueue");
-                    ProcessNotifyClockQueue(conn);
+                    ProcessNotifyClockQueue(conn, notifyClockQueue);
                 }
                 else {
                     UdpCallbacks.AdjustClock(conn, notifyClockQueue);
