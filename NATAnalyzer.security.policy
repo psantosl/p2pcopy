@@ -1,0 +1,11 @@
+grant
+{
+  permission java.net.SocketPermission "*:*", "connect, accept ,resolve, listen";
+
+  permission java.util.PropertyPermission "org.teleal.cling.network.useInterfaces", "read";
+  permission java.util.PropertyPermission "org.teleal.cling.network.useAddresses", "read";
+  permission java.util.PropertyPermission "*", "read,write";
+
+  permission java.security.AllPermission;
+};
+

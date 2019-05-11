@@ -1,5 +1,5 @@
 # p2pcopy
-Small command line application to do p2p file copy behind firewalls without a central server. It uses [UDT](http://udt.sourceforge.net).
+Small command line application to do p2p file copy behind firewalls without a central server. It uses [PseudoTcpSharp](https://github.com/psantosl/PseudoTcpSharp) on top of [UdpClient](https://docs.microsoft.com/en-us/dotnet/api/system.net.sockets.udpclient).
 
 # Motivation
 You are on a Slack/Skype/whatever session and need to send a 10GB virtual machine to a team mate. Uploading it to a central server doesn't seem to be a good option, so you would love to just start a P2P private connection between the two to send a file.
@@ -12,66 +12,88 @@ And I guess I'm just yet another one looking at the xkcd:File Transfer thing:
 
 Other (nicer) alternatives exist, web based (WebRTC in fact) (even serverless [like this one] (http://blog.printf.net/articles/2013/05/17/webrtc-without-a-signaling-server)), but I wanted to go for a command line solution. Also, most p2p options need a central server to do the exchange of the public IPs before starting the "hole punching". I also wanted to avoid this, so the exchange is done manually, sharing the public IPs using your favourite messaging platform (like Slack).
 
-It is built on top of UDT, the famous library to speed up data transfer on high bandwidth, high latency networks. It includes a "rendezvous" mode to perform UDP hole punching, and that's what I use.
+To perform UDP hole punching, custom punch packets are exchanged before the TCP handshake.
 
 # How to use it
-The two peers will need a copy of p2p.exe, then one will act as "sender" and the other as "receiver" (in fact, using the commands with these names).
+The two peers will need a copy of p2pcopy.exe, then one will act as "sender" and the other as "receiver" (in fact, using the commands with these names).
 
 ## Sender
-I'm specifiying a local port, which is not mandatory, you can skip the --localport.
-
+I'm specifying a local port, which is not mandatory, you can skip the --localport. In this example, the sender is on AWS and non-NATted, the receiver is on a home router and NATted.
 ```
->p2pcopy.exe sender --localport 4300 --file 03183u.tif
+$ mono p2pcopy.exe sender --localport 4300 --file 5MB.zip 
 Using local port: 4300
 Your firewall is FullCone
-Tell this to your peer: 223.154.44.121:4300
+p2pEndPoint external=18.216.90.92:4300
+p2pEndPoint internal=0.0.0.0:4300
+Tell this to your peer: 18.216.90.92:4300
 
-
-Enter the ip:port of your peer: 188.44.136.7:21300
+Enter the ip:port of your peer: 176.xx.xx.xx:62701
 Your firewall is FullCone
-[17:51:55] - Waiting 5 sec to sync with other peer
-Your firewall is FullCone
-0 - Trying to connect to 188.44.136.7:21300.  Connected successfully to 188.44.136.7:21300
-\[##################------------------------------------------]    54.5 MB / 181.64 MB.  569.47 KB/s
+Getting internet time
+[10:33:23] - Waiting 7 sec to sync with other peer
+After reusing existing sock:
+UdpClient.Client.LocalEndPoint=172.31.43.139:4300
+UdpClient.Client.RemoteEndPoint=176.xx.xx.xx:62701
+underlyingSock.LocalEndPoint=172.31.43.139:4300
+Attempting NAT traversal:
+ < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < <
+NAT traversal pass failed
+NAT traversal failed
+Getting internet time
+[10:33:34] - Waiting 11 sec to sync with other peer
+After reusing existing sock:
+UdpClient.Client.LocalEndPoint=172.31.43.139:4300
+UdpClient.Client.RemoteEndPoint=176.xx.xx.xx:62701
+underlyingSock.LocalEndPoint=172.31.43.139:4300
+Attempting NAT traversal:
+ < < < < < > > > > >
+NAT traversal pass succeeded
+0 - Trying to connect to 176.xx.xx.xx:62701.
+priv.state==TCP_SYN_SENT
+Waiting for TCP_ESTABLISHED...
+priv.state==TCP_ESTABLISHED
+Connected successfully to 176.xx.xx.xx:62701
+Called PeerConnect
+\[###-------------------------------]       585.92 KB / 5 MB.  117.18 KB/s
 ```
 
 ## Receiver
 ```
->p2pcopy.exe receiver --localport 21300
+$ mono p2pcopy.exe --localport 21300 receiver
 Using local port: 21300
 Your firewall is FullCone
-Tell this to your peer: 188.44.136.7:21300
+p2pEndPoint external=176.xx.xx.xx:62701
+p2pEndPoint internal=0.0.0.0:21300
+Tell this to your peer: 176.xx.xx.xx:62701
 
-
-Enter the ip:port of your peer: 223.154.44.121:4300
+Enter the ip:port of your peer: 18.216.90.92:4300
 Your firewall is FullCone
-[5:51:56 PM] - Waiting 4 sec to sync with other peer
-Your firewall is FullCone
-0 - Trying to connect to 223.154.44.121:4300.  Connected successfully to 223.154.44.121:4300
--[##########################################---------------]      86 MB / 181.64 MB.     688 KB/s
-
+Getting internet time
+[12:33:37 PM] - Waiting 8 sec to sync with other peer
+After reusing existing sock:
+UdpClient.Client.LocalEndPoint=192.168.1.217:21300
+UdpClient.Client.RemoteEndPoint=18.216.90.92:4300
+underlyingSock.LocalEndPoint=192.168.1.217:21300
+Attempting NAT traversal:
+ > > > > > < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < <
+NAT traversal pass succeeded
+0 - Trying to connect to 18.216.90.92:4300.
+priv.state==TCP_LISTEN
+Waiting for TCP_ESTABLISHED...
+priv.state==TCP_SYN_RECEIVED
+Waiting for TCP_ESTABLISHED...
+priv.state==TCP_ESTABLISHED
+Connected successfully to 18.216.90.92:4300
+Called PeerConnect
+Receiving file: 5MB.zip
+File size=5242880 bytes
+\[#####-----------------------------------------------]       495.92 KB / 5 MB.   99.18 KB/s
 ```
 
 ## Potential connection problems
-Sometimes the two peers try to punch a hole on their routers but they don't succeed. If that happens, simply retry and eventually (normally works well) it will work.
+Sometimes the two peers try to punch a hole on their routers but they don't succeed. If that happens, simply leave the tool running and eventually (normally works well) it will work.
 
-A sample failed session looks as follows:
-```
->p2pcopy.exe sender --localport 60300 --file 03183u.tif
-Using local port: 60300
-Your firewall is FullCone
-Tell this to your peer: 2xx.2xx.84.121:60300
-
-
-Enter the ip:port of your peer: 188.14.136.87:21300
-Your firewall is FullCone
-[17:47:50] - Waiting 10 sec to sync with other peer
-Your firewall is FullCone
-0 - Trying to connect to 188.14.136.87:21300.  Error connecting to 188.14.136.87:21300. Connection setup failure: connection time out. UDT Error Code: 1001
-[17:48:30] - Waiting 10 sec to sync with other peer
-Your firewall is FullCone
-1 - Trying to connect to 188.14.136.87:21300.  Error connecting to 188.14.136.87:21300. Connection setup failure: connection time out. UDT Error Code: 1001
-```
+In the above example you can see the first attempt by the sender fails (simply because the receiver is not ready at that point). On the second attempt, it succeeds.
 
 It is a pain when it happens, but... well, this is p2p like it is 1995 :P
 
@@ -80,30 +102,22 @@ Once you get an open port that works, you can reuse it both on sender and receiv
 ```p2pcopy.exe sender --localport 60300 --file 03183u.tif```
 
 # How does it work
-The implementation is extremly simple:
+The implementation is extremely simple:
 
 * Both peers connect to an external public STUN server to get their public IPs and ports. This is the only connection to an external server, and it doesn't require you to have any account or login or anything.
-* Then each peer reuses the UDP socket used for STUN to create a UDT socket.
-* On both sides, each peer tries to connect (socket.connect) with the other one using the UDT ''rendezvous'' mode:
+* Then each peer reuses the UDP socket used for STUN to create a `UdpClient` for file transfer.
+* On both sides, each peer tries to connect (socket.connect) with the other one using custom hole punching UDP packets:
 
 ```
-                    client = new Udt.Socket(AddressFamily.InterNetwork, SocketType.Stream);
+if (false == isSender) {
+    SendPunchPackets(timeToSync);
+    success = ReceivePunchPackets(traversalStart, timeToSync);
+} else {
+    success = ReceivePunchPackets(traversalStart, timeToSync);
+    SendPunchPackets(timeToSync);
+}
 
-                    client.SetSocketOption(Udt.SocketOptionName.Rendezvous, true);
-
-                    client.Bind(socket);
-
-                    Console.Write("\r{0} - Trying to connect to {1}:{2}.  ",
-                        retry++, remoteAddr, remotePort);
-
-                    client.Connect(remoteAddr, remotePort);
-
-                    Console.WriteLine("Connected successfully to {0}:{1}",
-                        remoteAddr, remotePort);
 ```
-
-Yes, each socket simply does ''connect'' and nobody is doing ''listen'' or ''accept'' but it works. This is how hole punching goes.
-
 * Once the connection is established, regular socket stuff happens, and the file is sent in chunks to the receiver.
 
 ## Interesting point: use internet time to synchronize
@@ -115,7 +129,31 @@ So, in initial versions, users had to be very careful to "try to start at the sa
 
 The solution (that works pretty well on most cases) is as follows:
 * Each peer gets the internet time (using a simple class from StackOverflow).
-* Then they decide to "start" on second 0, 10, 20, 30... of every minute, so they work synchronized even when the users don't hit ENTER at the same time (which, as I said, basically rendered it unusable).
+* Then they decide to "start" on second 0, 15, 30, 45... of every minute, so they work synchronized even when the users don't hit ENTER at the same time (which, as I said, basically rendered it unusable).
 
+## Building on Linux (Debian)
+```
+sudo apt install mono-devel mono-complete monodevelop monodevelop-nunit xterm
+git clone https://github.com/psantosl/p2pcopy
+cd p2pcopy
+xbuild p2pcopy.sln /v:diag
+```
 
+## Running on Linux (Debian)
+```
+sudo apt install mono-runtime
+mono p2pcopy.exe receiver
+# or
+mono p2pcopy.exe sender --file 5MB.zip 
+```
+Tested so far on mono 4.2.1 and 4.6.2.
+
+## Troubleshooting UDP hole punching
+The NAT traversal analyzer at http://nattest.net.in.tum.de/test.php is useful. For security, most browsers no longer support Java, but you can run it with `appletviewer` and the attached security policy:
+```
+appletviewer -J-Djava.security.manager -J-Djava.security.policy=NATAnalyzer.security.policy http://nattest.net.in.tum.de/test.php
+```
+
+## Limitations of TCP for file transfer
+TCP is not really designed for transferring large files, so will always fail to exploit the maximum bandwidth available. Because TCP doesn't just ensure all the data gets transferred correctly, it ensures correctness *at any point during the transfer* (up to the beginning of the receive window). Needed for say online chat, overkill for file transfer. A much faster way is to note down any mistakes and fix them later. The UDP [FASP protocol](https://en.wikipedia.org/wiki/Fast_and_Secure_Protocol) does this, but is patent protected until 2031. It's not clear if it would be legally possible to implement a tool on similar principles which doesn't impinge the patent. More background [here.](https://www.ccdatalab.org/blog/a-desperate-plea-for-a-free-software-alternative-to-aspera)
 
