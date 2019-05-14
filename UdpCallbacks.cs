@@ -105,9 +105,17 @@ namespace p2pcopy
             int rxCount = 0;
             do {
                 Console.Write (" <");
-                punch = udpc.Receive (ref ep);
-                rxCount += (ep.Equals(udpc.Client.RemoteEndPoint) && IsPunchPacket(punch, timeToSync)) ? 1:0;
-                PLog.DEBUG ("\nReceived pkt, endpoint now={0}, received size={1}", punch, punch.Length);
+                try
+                {
+                    punch = udpc.Receive (ref ep);
+                    rxCount += (ep.Equals(udpc.Client.RemoteEndPoint) && IsPunchPacket(punch, timeToSync)) ? 1:0;
+                    PLog.DEBUG ("\nReceived pkt, endpoint now={0}, received size={1}", punch, punch.Length);
+                }
+                catch (Exception e)
+                {
+                    Console.Write("E");
+                    PLog.DEBUG("ReceivePunchPackets: Exception from UdpClient.Receive: {0}", e);
+                }
             } while (rxCount < Config.PUNCH_PKTS_PER_TRY && Environment.TickCount < traversalStart+Config.MAX_TRAVERSAL_TIME);
             PLog.DEBUG ("Received {0} punch packets", rxCount);
 
