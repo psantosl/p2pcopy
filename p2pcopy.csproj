@@ -35,9 +35,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
-    <Reference Include="UdtProtocol">
-      <HintPath>udt64\UdtProtocol.dll</HintPath>
-    </Reference>
     <Reference Include="Costura">
       <HintPath>packages\Costura.Fody.4.0.0\lib\net40\Costura.dll</HintPath>
     </Reference>
