@@ -38,8 +38,7 @@ namespace p2pcopy
 
             udpc = new UdpClient();
             udpc.Client = underlyingSock;
-            IPAddress remoteIP = Dns.GetHostEntry (remoteAddr).AddressList[0];
-            udpc.Connect (new IPEndPoint (remoteIP, remotePort));
+            udpc.Connect (new IPEndPoint (IPAddress.Parse(remoteAddr), remotePort));
             endReceiveRemoteEP = new IPEndPoint(IPAddress.Any,0);
 
             Console.WriteLine("After reusing existing sock:");
