@@ -298,6 +298,7 @@ namespace p2pcopy
                     Console.WriteLine(e.Message.Replace(Environment.NewLine, ". "));
                     Console.WriteLine (e.StackTrace);
                     Console.WriteLine ("Inner exception=" + e.InnerException);
+                    return null;
                 }
             }
 
