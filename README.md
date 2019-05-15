@@ -18,82 +18,45 @@ To perform UDP hole punching, custom punch packets are exchanged before the TCP 
 The two peers will need a copy of p2pcopy.exe, then one will act as "sender" and the other as "receiver" (in fact, using the commands with these names).
 
 ## Sender
-I'm specifying a local port, which is not mandatory, you can skip the --localport. In this example, the sender is on AWS and non-NATted, the receiver is on a home router and NATted.
 ```
-$ mono p2pcopy.exe sender --localport 4300 --file 5MB.zip 
-Using local port: 4300
+p2pcopy sender --file someFile.zip 
 Your firewall is FullCone
-p2pEndPoint external=18.216.90.92:4300
-p2pEndPoint internal=0.0.0.0:4300
-Tell this to your peer: 18.216.90.92:4300
+Tell this to your peer: 109.x.x.x:23705
 
-Enter the ip:port of your peer: 176.xx.xx.xx:62701
+Enter the ip:port of your peer: 3.x.x.x:61235
 Your firewall is FullCone
-Getting internet time
-[10:33:23] - Waiting 7 sec to sync with other peer
-After reusing existing sock:
-UdpClient.Client.LocalEndPoint=172.31.43.139:4300
-UdpClient.Client.RemoteEndPoint=176.xx.xx.xx:62701
-underlyingSock.LocalEndPoint=172.31.43.139:4300
-Attempting NAT traversal:
- < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < <
-NAT traversal pass failed
-NAT traversal failed
-Getting internet time
-[10:33:34] - Waiting 11 sec to sync with other peer
-After reusing existing sock:
-UdpClient.Client.LocalEndPoint=172.31.43.139:4300
-UdpClient.Client.RemoteEndPoint=176.xx.xx.xx:62701
-underlyingSock.LocalEndPoint=172.31.43.139:4300
-Attempting NAT traversal:
- < < < < < > > > > >
-NAT traversal pass succeeded
-0 - Trying to connect to 176.xx.xx.xx:62701.
-priv.state==TCP_SYN_SENT
-Waiting for TCP_ESTABLISHED...
-priv.state==TCP_ESTABLISHED
-Connected successfully to 176.xx.xx.xx:62701
-Called PeerConnect
-\[###-------------------------------]       585.92 KB / 5 MB.  117.18 KB/s
+[11:59:36 AM] - Waiting 4 sec to sync with other peer
+Attempting NAT traversal
+[11:59:52 AM] - Waiting 8 sec to sync with other peer
+Attempting NAT traversal
+0 - TCP: Trying to connect to 3.x.x.x:61235. Connected successfully to 3.x.x.x:61235
+\[##################################]    56.59 KB / 56.59 KB. 
+
+Done!
 ```
 
 ## Receiver
 ```
-$ mono p2pcopy.exe --localport 21300 receiver
-Using local port: 21300
+p2pcopy receiver
 Your firewall is FullCone
-p2pEndPoint external=176.xx.xx.xx:62701
-p2pEndPoint internal=0.0.0.0:21300
-Tell this to your peer: 176.xx.xx.xx:62701
+Tell this to your peer: 3.x.x.x:61235
 
-Enter the ip:port of your peer: 18.216.90.92:4300
+Enter the ip:port of your peer: 109.x.x.x:23705
 Your firewall is FullCone
-Getting internet time
-[12:33:37 PM] - Waiting 8 sec to sync with other peer
-After reusing existing sock:
-UdpClient.Client.LocalEndPoint=192.168.1.217:21300
-UdpClient.Client.RemoteEndPoint=18.216.90.92:4300
-underlyingSock.LocalEndPoint=192.168.1.217:21300
-Attempting NAT traversal:
- > > > > > < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < <
-NAT traversal pass succeeded
-0 - Trying to connect to 18.216.90.92:4300.
-priv.state==TCP_LISTEN
-Waiting for TCP_ESTABLISHED...
-priv.state==TCP_SYN_RECEIVED
-Waiting for TCP_ESTABLISHED...
-priv.state==TCP_ESTABLISHED
-Connected successfully to 18.216.90.92:4300
-Called PeerConnect
-Receiving file: 5MB.zip
-File size=5242880 bytes
-\[#####-----------------------------------------------]       495.92 KB / 5 MB.   99.18 KB/s
+[9:59:33 AM] - Waiting 7 sec to sync with other peer
+Attempting NAT traversal
+[9:59:52 AM] - Waiting 8 sec to sync with other peer
+Attempting NAT traversal
+0 - TCP: Trying to connect to 109.x.x.x:23705. Connected successfully to 109.x.x.x:23705
+|[############################################################]    56.59 KB / 56.59 KB.   28.29 KB/s
+Receive time=2.625 secs
+Av bandwidth=0.168413434709821 Mbits/sec
 ```
 
 ## Potential connection problems
-Sometimes the two peers try to punch a hole on their routers but they don't succeed. If that happens, simply leave the tool running and eventually (normally works well) it will work.
+Sometimes the two peers try to punch a hole on their routers but they don't succeed. If that happens, simply leave the tool running and eventually (normally works well) it will work. If it continues to fail, restart the tool.
 
-In the above example you can see the first attempt by the sender fails (simply because the receiver is not ready at that point). On the second attempt, it succeeds.
+In the above example you can see the first attempt by the sender fails, because more punch packets are needed to establish the firewall holes on both sides. On the second attempt, it succeeds.
 
 It is a pain when it happens, but... well, this is p2p like it is 1995 :P
 
