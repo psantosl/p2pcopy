@@ -88,7 +88,7 @@ namespace p2pcopy
                         Console.WriteLine();
 
                         Console.WriteLine("Current: {0} / s",
-                            SizeConverter.ConvertToSizeString(toSend / (Environment.TickCount - iteration) * 1000));
+                            SizeConverter.ConvertToSizeString(toSend / (Environment.TickCount - iteration + 1) * 1000));
 
                         //Console.WriteLine("BandwidthMbps {0} mbps.", conn.GetPerformanceInfo().Probe.BandwidthMbps);
                         //Console.WriteLine("RoundtripTime {0}.", conn.GetPerformanceInfo().Probe.RoundtripTime);
