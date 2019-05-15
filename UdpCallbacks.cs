@@ -60,7 +60,7 @@ namespace p2pcopy
 
         private bool TryNatTraversal(bool isSender, int timeToSync)
         {
-            PLog.VERBOSE ("Attempting NAT traversal:");
+            Console.WriteLine ("Attempting NAT traversal");
             bool success = false;
             int traversalStart = Environment.TickCount;
             for (int i = 0;
