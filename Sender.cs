@@ -101,7 +101,7 @@ namespace p2pcopy
             Console.WriteLine ();
             while (conn.priv.sbuf.data_length != 0)
             {
-                Console.WriteLine ("Waiting for buffered data to finish sending...");
+                PLog.VERBOSE ("Waiting for buffered data to finish sending...");
                 for (int i = 0; i < 20; i++) 
                 {
                     conn.NotifyClock();

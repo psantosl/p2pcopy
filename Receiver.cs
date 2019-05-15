@@ -39,7 +39,7 @@ namespace p2pcopy
             SyncPseudoTcpSocket.Send(conn,ackBuffer,1);
             PLog.DEBUG ("filename bytes=" + BitConverter.ToString(fnBytes));
             string fileName = System.Text.Encoding.UTF8.GetString(fnBytes);
-            Console.WriteLine ("Receiving file: {0}", fileName);
+            PLog.VERBOSE ("Receiving file: {0}", fileName);
 
             byte[] fileSizeBytes = new byte[sizeof(long)];
             do {
@@ -49,7 +49,7 @@ namespace p2pcopy
             } while (got == -1);
             SyncPseudoTcpSocket.Send(conn, ackBuffer,1);
             long size = (long)BitConverter.ToInt64 (fileSizeBytes, 0);
-            Console.WriteLine ("File size={0} bytes", size);
+            PLog.VERBOSE ("File size={0} bytes", size);
 
             byte[] buffer = new byte[4 * 1024 * 1024];
             int i = 0;

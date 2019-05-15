@@ -41,10 +41,10 @@ namespace p2pcopy
             udpc.Connect (new IPEndPoint (IPAddress.Parse(remoteAddr), remotePort));
             endReceiveRemoteEP = new IPEndPoint(IPAddress.Any,0);
 
-            Console.WriteLine("After reusing existing sock:");
-            Console.WriteLine ("UdpClient.Client.LocalEndPoint=" + udpc.Client.LocalEndPoint);
-            Console.WriteLine ("UdpClient.Client.RemoteEndPoint=" + udpc.Client.RemoteEndPoint);
-            Console.WriteLine ("underlyingSock.LocalEndPoint=" + underlyingSock.LocalEndPoint);
+            PLog.VERBOSE("After reusing existing sock:");
+            PLog.VERBOSE("UdpClient.Client.LocalEndPoint=" + udpc.Client.LocalEndPoint);
+            PLog.VERBOSE("UdpClient.Client.RemoteEndPoint=" + udpc.Client.RemoteEndPoint);
+            PLog.VERBOSE("underlyingSock.LocalEndPoint=" + underlyingSock.LocalEndPoint);
 
             if (TryNatTraversal (isSender, nextTimeToSync))
             {
@@ -53,14 +53,14 @@ namespace p2pcopy
             }
             else
             {
-                Console.WriteLine("NAT traversal failed");
+                PLog.VERBOSE("NAT traversal failed");
                 return false;
             }
         }
 
         private bool TryNatTraversal(bool isSender, int timeToSync)
         {
-            Console.WriteLine ("Attempting NAT traversal:");
+            PLog.VERBOSE ("Attempting NAT traversal:");
             bool success = false;
             int traversalStart = Environment.TickCount;
             for (int i = 0;
@@ -79,7 +79,7 @@ namespace p2pcopy
                 }
             }
 
-            Console.WriteLine("\nNAT traversal pass {0}", success ? "succeeded":"failed");
+            PLog.VERBOSE("\nNAT traversal pass {0}", success ? "succeeded":"failed");
             return success;
         }
 
@@ -92,7 +92,7 @@ namespace p2pcopy
 
             for (int j=0; j<Config.PUNCH_PKTS_PER_TRY; j++)
             {
-                Console.Write (" >");
+                PLog.VERBOSE_WRITE (" >");
                 udpc.Send (punch, punch.Length);
             }
             PLog.DEBUG ("\nSent punch packets");
@@ -104,7 +104,7 @@ namespace p2pcopy
             byte[] punch;
             int rxCount = 0;
             do {
-                Console.Write (" <");
+                PLog.VERBOSE_WRITE (" <");
                 try
                 {
                     punch = udpc.Receive (ref ep);
@@ -113,7 +113,7 @@ namespace p2pcopy
                 }
                 catch (Exception e)
                 {
-                    Console.Write("E");
+                    PLog.VERBOSE_WRITE("E");
                     PLog.DEBUG("ReceivePunchPackets: Exception from UdpClient.Receive: {0}", e);
                 }
             } while (rxCount < Config.PUNCH_PKTS_PER_TRY && Environment.TickCount < traversalStart+Config.MAX_TRAVERSAL_TIME);
