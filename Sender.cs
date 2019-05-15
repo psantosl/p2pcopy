@@ -83,18 +83,17 @@ namespace p2pcopy
 
                     ConsoleProgress.Draw(i++, pos, fileSize, ini, Console.WindowWidth / 3);
 
-                    if (bVerbose)
-                    {
-                        Console.WriteLine();
+                    PLog.Verbose("");
+                    PLog.Verbose("Current: {0} / s",
+                        SizeConverter.ConvertToSizeString(toSend / (Environment.TickCount - iteration + 1) * 1000));
 
-                        Console.WriteLine("Current: {0} / s",
-                            SizeConverter.ConvertToSizeString(toSend / (Environment.TickCount - iteration + 1) * 1000));
+                    PLog.Verbose ("RTO={0} millis", conn.priv.rx_rto);
+                    PLog.Verbose ("Send buffer={0} bytes", conn.priv.sbuf.data_length);
 
-                        //Console.WriteLine("BandwidthMbps {0} mbps.", conn.GetPerformanceInfo().Probe.BandwidthMbps);
-                        //Console.WriteLine("RoundtripTime {0}.", conn.GetPerformanceInfo().Probe.RoundtripTime);
-                        //Console.WriteLine("SendMbps {0}.", conn.GetPerformanceInfo().Local.SendMbps);
-                        //Console.WriteLine("ReceiveMbps {0}.", conn.GetPerformanceInfo().Local.ReceiveMbps);
-                    }
+                    //Console.WriteLine("BandwidthMbps {0} mbps.", conn.GetPerformanceInfo().Probe.BandwidthMbps);
+                    //Console.WriteLine("RoundtripTime {0}.", conn.GetPerformanceInfo().Probe.RoundtripTime);
+                    //Console.WriteLine("SendMbps {0}.", conn.GetPerformanceInfo().Local.SendMbps);
+                    //Console.WriteLine("ReceiveMbps {0}.", conn.GetPerformanceInfo().Local.ReceiveMbps);
                 }
             }
 
