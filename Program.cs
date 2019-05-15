@@ -30,17 +30,26 @@ namespace p2pcopy
 
             try
             {
+                if (cla.LocalAddress != null)
+                {
+                    Console.WriteLine("Using local (internal) address: {0}", cla.LocalAddress);
+                }
+                else
+                {
+                    cla.LocalAddress = IPAddress.Any;
+                }
 
                 if (cla.LocalPort != -1)
                 {
-                    Console.WriteLine("Using local port: {0}", cla.LocalPort);
+                    Console.WriteLine("Using local (internal) port: {0}", cla.LocalPort);
                 }
                 else
                 {
                     cla.LocalPort = 0;
                 }
 
-                socket.Bind(new IPEndPoint(IPAddress.Any, cla.LocalPort));
+                socket.Bind(new IPEndPoint(cla.LocalAddress, cla.LocalPort));
+                PLog.DEBUG("Bound socket to internal addr {0}", cla.LocalAddress);
 
                 P2pEndPoint p2pEndPoint = GetExternalEndPoint(socket);
 
@@ -110,6 +119,8 @@ namespace p2pcopy
 
             internal string File;
 
+            internal IPAddress LocalAddress = null;
+
             internal int LocalPort = -1;
 
             internal bool Verbose = false;
@@ -138,6 +149,10 @@ namespace p2pcopy
                         case "--file":
                             if (args.Length == i) return null;
                             result.File = args[i++];
+                            break;
+                        case "--localaddress":
+                            if (args.Length == i) return null;
+                            result.LocalAddress = IPAddress.Parse(args[i++]);
                             break;
                         case "--localport":
                             if (args.Length == i) return null;
