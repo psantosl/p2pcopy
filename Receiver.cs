@@ -13,7 +13,7 @@ namespace p2pcopy
     {
         static internal void Run(PseudoTcpSocket conn)
         {
-            PLog.DEBUG ("In Receiver.Run");
+            PLog.Debug ("In Receiver.Run");
             int ini = Environment.TickCount;
 
             byte[] ackBuffer = new byte[1];
@@ -23,33 +23,33 @@ namespace p2pcopy
             byte[] fnlBytes = new byte[4];
             do {
                 got = SyncPseudoTcpSocket.Recv(conn,fnlBytes,4);
-                PLog.DEBUG ("Reading filename length, got={0}", got);
+                PLog.Debug ("Reading filename length, got={0}", got);
                 UdpCallbacks.PollingSleep (got, -1);
             } while (got == -1);
             SyncPseudoTcpSocket.Send(conn,ackBuffer,1);
             uint fileNameLengthBytes = (uint)BitConverter.ToInt32 (fnlBytes, 0);
-            PLog.DEBUG ("Got filename length=" + fileNameLengthBytes);
+            PLog.Debug ("Got filename length=" + fileNameLengthBytes);
 
             byte[] fnBytes = new byte[fileNameLengthBytes];
             do {
                 got = SyncPseudoTcpSocket.Recv (conn,fnBytes, fileNameLengthBytes);
-                PLog.DEBUG ("Reading filename, got={0}", got);
+                PLog.Debug ("Reading filename, got={0}", got);
                 UdpCallbacks.PollingSleep (got, -1);
             } while (got == -1);
             SyncPseudoTcpSocket.Send(conn,ackBuffer,1);
-            PLog.DEBUG ("filename bytes=" + BitConverter.ToString(fnBytes));
+            PLog.Debug ("filename bytes=" + BitConverter.ToString(fnBytes));
             string fileName = System.Text.Encoding.UTF8.GetString(fnBytes);
-            PLog.VERBOSE ("Receiving file: {0}", fileName);
+            PLog.Verbose ("Receiving file: {0}", fileName);
 
             byte[] fileSizeBytes = new byte[sizeof(long)];
             do {
                 got = SyncPseudoTcpSocket.Recv(conn,fileSizeBytes, (uint)fileSizeBytes.Length);
-                PLog.DEBUG ("Reading file size, got={0}", got);
+                PLog.Debug ("Reading file size, got={0}", got);
                 UdpCallbacks.PollingSleep(got, -1);
             } while (got == -1);
             SyncPseudoTcpSocket.Send(conn, ackBuffer,1);
             long size = (long)BitConverter.ToInt64 (fileSizeBytes, 0);
-            PLog.VERBOSE ("File size={0} bytes", size);
+            PLog.Verbose ("File size={0} bytes", size);
 
             byte[] buffer = new byte[4 * 1024 * 1024];
             int i = 0;
@@ -64,12 +64,12 @@ namespace p2pcopy
                 while (read < size)
                 {
                     do {
-                        PLog.DEBUG("{0} Reading file data... so far total read={1}", Environment.TickCount, read);
+                        PLog.Debug("{0} Reading file data... so far total read={1}", Environment.TickCount, read);
                         len = SyncPseudoTcpSocket.Recv (conn, buffer, (uint)buffer.Length);
                         UdpCallbacks.PollingSleep(len, -1);
                     } while (len == -1);
 
-                    PLog.DEBUG ("Read {0} bytes of file data", len);
+                    PLog.Debug ("Read {0} bytes of file data", len);
                     fileStream.Write(buffer, 0, (int)len);
                     read += len;
 

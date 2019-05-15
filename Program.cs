@@ -30,8 +30,15 @@ namespace p2pcopy
 
             try
             {
-                PLog.debug = cla.Debug;
-                PLog.verbose = cla.Verbose;
+                if (cla.Debug)
+                {
+                    PLog.SetDebug();
+                }
+
+                if (cla.Verbose)
+                {
+                    PLog.SetVerbose();
+                }
 
                 if (cla.LocalAddress != null)
                 {
@@ -52,12 +59,12 @@ namespace p2pcopy
                 }
 
                 socket.Bind(new IPEndPoint(cla.LocalAddress, cla.LocalPort));
-                PLog.DEBUG("Bound socket to internal addr {0}", cla.LocalAddress);
+                PLog.Debug("Bound socket to internal addr {0}", cla.LocalAddress);
 
                 P2pEndPoint p2pEndPoint = GetExternalEndPoint(socket);
 
-                PLog.VERBOSE("p2pEndPoint external=" + p2pEndPoint.External);
-                PLog.VERBOSE("p2pEndPoint internal=" + p2pEndPoint.Internal);
+                PLog.Verbose("p2pEndPoint external=" + p2pEndPoint.External);
+                PLog.Verbose("p2pEndPoint internal=" + p2pEndPoint.Internal);
 
                 if (p2pEndPoint == null)
                     return;
@@ -84,7 +91,7 @@ namespace p2pcopy
                 PseudoTcpSocket connection = PeerConnect(
                     p2pEndPoint.External.Address.ToString(), p2pEndPoint.External.Port, 
                     socket, remoteIp, remotePort, cla);
-                PLog.DEBUG("Called PeerConnect");
+                PLog.Debug("Called PeerConnect");
 
                 if (connection == null)
                 {
@@ -237,7 +244,7 @@ namespace p2pcopy
             {
                 try
                 {
-                    PLog.VERBOSE("Getting internet time");
+                    PLog.Verbose("Getting internet time");
                     DateTime now = InternetTime.Get();
 
                     int nextTimeToSync = NextTime(now);
@@ -262,19 +269,19 @@ namespace p2pcopy
                     {
                         continue;
                     }
-                    PLog.DEBUG("Created PseudoTcpSocket");
+                    PLog.Debug("Created PseudoTcpSocket");
 
                     Console.Write("\r{0} - TCP: Trying to connect to {1}:{2}. ",
                         retry++, remoteAddr, remotePort);
 
                     if (cla.Sender) {
-                        PLog.DEBUG("Sender: calling PseudoTcpSocket.Connect");
+                        PLog.Debug("Sender: calling PseudoTcpSocket.Connect");
                         client.Connect();
                     }
 
                     int startTime = Environment.TickCount;
                     while (false==bConnected) {
-                        PLog.VERBOSE("priv.state=={0}", client.priv.state);
+                        PLog.Verbose("priv.state=={0}", client.priv.state);
                         if (PseudoTcpSocket.PseudoTcpState.Values.TCP_ESTABLISHED == client.priv.state) {
                             Console.WriteLine("Connected successfully to {0}:{1}",
                                 remoteAddr, remotePort);
@@ -283,11 +290,11 @@ namespace p2pcopy
                         }
                         else {
                             if (Environment.TickCount > startTime + Config.MAX_TCP_HANDSHAKE_TIME) {
-                                PLog.VERBOSE("5 secs timed out with priv.state={0}", client.priv.state);
+                                PLog.Verbose("5 secs timed out with priv.state={0}", client.priv.state);
                                 break;
                             }
                             else {
-                                PLog.VERBOSE("Waiting for TCP_ESTABLISHED...");
+                                PLog.Verbose("Waiting for TCP_ESTABLISHED...");
                                 Thread.Sleep(500);
                             }
                         }

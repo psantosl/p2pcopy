@@ -4,10 +4,20 @@ namespace p2pcopy
 {
     public class PLog
     {
-        public static bool debug = false;
-        public static bool verbose = false;
+        private static bool debug = false;
+        private static bool verbose = false;
 
-        public static void DEBUG(string fmt, params object[] args)
+        public static void SetDebug()
+        {
+            debug = true;
+        }
+
+        public static void SetVerbose()
+        {
+            verbose = true;
+        }
+
+        public static void Debug(string fmt, params object[] args)
         {
             if (debug)
             {
@@ -15,7 +25,7 @@ namespace p2pcopy
             }
         }
 
-        public static void VERBOSE(string fmt, params object[] args)
+        public static void Verbose(string fmt, params object[] args)
         {
             if (verbose || debug)
             {
@@ -23,7 +33,7 @@ namespace p2pcopy
             }
         }
 
-        public static void VERBOSE_WRITE(string fmt, params object[] args)
+        public static void VerboseWrite(string fmt, params object[] args)
         {
             if (verbose || debug)
             {
