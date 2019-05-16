@@ -41,10 +41,10 @@ namespace p2pcopy
             udpc.Connect (new IPEndPoint (IPAddress.Parse(remoteAddr), remotePort));
             endReceiveRemoteEP = new IPEndPoint(IPAddress.Any,0);
 
-            PLog.Verbose("After reusing existing sock:");
-            PLog.Verbose("UdpClient.Client.LocalEndPoint=" + udpc.Client.LocalEndPoint);
-            PLog.Verbose("UdpClient.Client.RemoteEndPoint=" + udpc.Client.RemoteEndPoint);
-            PLog.Verbose("underlyingSock.LocalEndPoint=" + underlyingSock.LocalEndPoint);
+            PLog.VerboseWriteLine("After reusing existing sock:");
+            PLog.VerboseWriteLine("UdpClient.Client.LocalEndPoint=" + udpc.Client.LocalEndPoint);
+            PLog.VerboseWriteLine("UdpClient.Client.RemoteEndPoint=" + udpc.Client.RemoteEndPoint);
+            PLog.VerboseWriteLine("underlyingSock.LocalEndPoint=" + underlyingSock.LocalEndPoint);
 
             if (TryNatTraversal (isSender, nextTimeToSync))
             {
@@ -53,7 +53,7 @@ namespace p2pcopy
             }
             else
             {
-                PLog.Verbose("NAT traversal failed");
+                PLog.VerboseWriteLine("NAT traversal failed");
                 return false;
             }
         }
@@ -75,11 +75,11 @@ namespace p2pcopy
                         SendPunchPackets(timeToSync);
                     }
                 } catch (Exception e) {
-                    PLog.Debug ("Exception {0}", e);
+                    PLog.DebugWriteLine ("Exception {0}", e);
                 }
             }
 
-            PLog.Verbose("\nNAT traversal pass {0}", success ? "succeeded":"failed");
+            PLog.VerboseWriteLine("\nNAT traversal pass {0}", success ? "succeeded":"failed");
             return success;
         }
 
@@ -95,7 +95,7 @@ namespace p2pcopy
                 PLog.VerboseWrite (" >");
                 udpc.Send (punch, punch.Length);
             }
-            PLog.Debug ("\nSent punch packets");
+            PLog.DebugWriteLine ("\nSent punch packets");
         }
 
         private bool ReceivePunchPackets(int traversalStart, int timeToSync)
@@ -109,15 +109,15 @@ namespace p2pcopy
                 {
                     punch = udpc.Receive (ref ep);
                     rxCount += (ep.Equals(udpc.Client.RemoteEndPoint) && IsPunchPacket(punch, timeToSync)) ? 1:0;
-                    PLog.Debug ("\nReceived pkt, endpoint now={0}, received size={1}", punch, punch.Length);
+                    PLog.DebugWriteLine ("\nReceived pkt, endpoint now={0}, received size={1}", punch, punch.Length);
                 }
                 catch (SocketException e)
                 {
                     PLog.VerboseWrite("E");
-                    PLog.Debug("ReceivePunchPackets: Exception from UdpClient.Receive: {0}", e);
+                    PLog.DebugWriteLine("ReceivePunchPackets: Exception from UdpClient.Receive: {0}", e);
                 }
             } while (rxCount < Config.PUNCH_PKTS_PER_TRY && Environment.TickCount < traversalStart+Config.MAX_TRAVERSAL_TIME);
-            PLog.Debug ("Received {0} punch packets", rxCount);
+            PLog.DebugWriteLine ("Received {0} punch packets", rxCount);
 
             return rxCount >= Config.PUNCH_PKTS_PER_TRY;
         }
@@ -143,7 +143,7 @@ namespace p2pcopy
         public void BeginReceive()
         {
             udpc.BeginReceive(new AsyncCallback(MessageReceived), null);
-            PLog.Debug("Listening on UDP endpoint {0}", underlyingSock.LocalEndPoint);
+            PLog.DebugWriteLine("Listening on UDP endpoint {0}", underlyingSock.LocalEndPoint);
         }
 
         public void MessageReceived(IAsyncResult ar)
@@ -154,7 +154,7 @@ namespace p2pcopy
             }
 
             byte[] receiveBytes = udpc.EndReceive(ar, ref endReceiveRemoteEP);
-            PLog.Debug("Received {0} bytes from {1}", receiveBytes.Length, endReceiveRemoteEP);
+            PLog.DebugWriteLine("Received {0} bytes from {1}", receiveBytes.Length, endReceiveRemoteEP);
                 
             SyncPseudoTcpSocket.NotifyPacket(pseudoSock, receiveBytes, (uint)receiveBytes.Length);
             SyncPseudoTcpSocket.NotifyClock(pseudoSock);
@@ -171,7 +171,7 @@ namespace p2pcopy
             try
             {
                 this.udpc.Send(buffer, (int)len);
-                PLog.Debug("Sent {0} bytes to UDPClient at {1}:{2}", len, remoteAddr, remotePort);
+                PLog.DebugWriteLine("Sent {0} bytes to UDPClient at {1}:{2}", len, remoteAddr, remotePort);
                 return PseudoTcpSocket.WriteResult.WR_SUCCESS;
             }
             catch (Exception e)
@@ -183,17 +183,17 @@ namespace p2pcopy
 
         public void Opened(PseudoTcp.PseudoTcpSocket sock, object data)
         {
-            PLog.Debug ("UdpCallbacks.Opened");
+            PLog.DebugWriteLine ("UdpCallbacks.Opened");
         }
 
         public void Closed(PseudoTcpSocket sock, uint err, object data)
         {
-            PLog.Debug ("UdpCallbacks.Closed: err={0}", err);
+            PLog.DebugWriteLine ("UdpCallbacks.Closed: err={0}", err);
         }
 
         public void Writable (PseudoTcp.PseudoTcpSocket sock, object data)
         {
-            PLog.Debug ("UdpCallbacks.Writeable");
+            PLog.DebugWriteLine ("UdpCallbacks.Writeable");
         }
 
         public static void AdjustClock(PseudoTcp.PseudoTcpSocket sock, Queue notifyClockQueue)
@@ -202,7 +202,7 @@ namespace p2pcopy
 
             if (SyncPseudoTcpSocket.GetNextClock(sock, ref timeout))
             {
-                PLog.Debug ("AdjustClock: GetNextClock={0}", timeout);
+                PLog.DebugWriteLine ("AdjustClock: GetNextClock={0}", timeout);
                 uint now = PseudoTcpSocket.GetMonotonicTime();
 
                 if (now < timeout)
@@ -221,7 +221,7 @@ namespace p2pcopy
             }
             else
             {
-                PLog.Debug ("AdjustClock: didnt get timeout");
+                PLog.DebugWriteLine ("AdjustClock: didnt get timeout");
 
                 /*left_closed = true;
 

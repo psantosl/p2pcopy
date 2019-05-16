@@ -22,23 +22,23 @@ namespace p2pcopy
                 long fileSize = new FileInfo(file).Length;
                 byte[] ackBuffer = new byte[1];
 
-                PLog.Debug ("Sending filename {0}", Path.GetFileName (file));
+                PLog.DebugWriteLine ("Sending filename {0}", Path.GetFileName (file));
                 byte[] fileNameBytes = Encoding.UTF8.GetBytes (Path.GetFileName (file));
                 byte[] fileNameBytesLength = BitConverter.GetBytes (fileNameBytes.Length);
-                PLog.Debug ("Length of file name in bytes={0}", fileNameBytesLength);
+                PLog.DebugWriteLine ("Length of file name in bytes={0}", fileNameBytesLength);
 
                 SyncPseudoTcpSocket.Send(conn, fileNameBytesLength, (uint)fileNameBytesLength.Length);
                 SyncPseudoTcpSocket.Recv (conn, ackBuffer, 1);
-                PLog.Debug ("Sent filename length, ack={0}", ackBuffer [0]);
+                PLog.DebugWriteLine ("Sent filename length, ack={0}", ackBuffer [0]);
 
                 SyncPseudoTcpSocket.Send(conn, fileNameBytes, (uint)fileNameBytes.Length);
                 SyncPseudoTcpSocket.Recv (conn, ackBuffer, 1);
-                PLog.Debug ("Sent filename bytes {0}={1}, ack={2}",
+                PLog.DebugWriteLine ("Sent filename bytes {0}={1}, ack={2}",
                     fileNameBytes, BitConverter.ToString(fileNameBytes), ackBuffer[0]);
 
                 SyncPseudoTcpSocket.Send(conn, BitConverter.GetBytes(fileSize), 8);
                 SyncPseudoTcpSocket.Recv (conn, ackBuffer, 1);
-                PLog.Debug ("Sent file size, ack={0}", ackBuffer [0]);
+                PLog.DebugWriteLine ("Sent file size, ack={0}", ackBuffer [0]);
 
                 byte[] buffer = new byte[512 * 1024];
 
@@ -56,7 +56,7 @@ namespace p2pcopy
                         ? buffer.Length
                         : (int)(fileSize - pos);
 
-                    PLog.Debug ("File reading: pos={0}, fileSize={1}, toSend={2}", pos, fileSize, toSend);
+                    PLog.DebugWriteLine ("File reading: pos={0}, fileSize={1}, toSend={2}", pos, fileSize, toSend);
 
                     fileReader.Read(buffer, 0, toSend);
 
@@ -69,7 +69,7 @@ namespace p2pcopy
                         sent = SendFragment (conn, buffer, fragmentSize, notifyClockQueue);
 
                         totalSent += sent;
-                        PLog.Debug ("totalSent={0} sent={1} fragmentSize={2}",totalSent, sent, fragmentSize);
+                        PLog.DebugWriteLine ("totalSent={0} sent={1} fragmentSize={2}",totalSent, sent, fragmentSize);
                         if (sent < fragmentSize) {
                             byte[] buffer2 = new byte[fragmentSize-sent];
                             Buffer.BlockCopy(buffer, sent, buffer2, 0, buffer2.Length);
@@ -77,18 +77,18 @@ namespace p2pcopy
                             buffer = buffer2;
                         }
                     }
-                    PLog.Debug("finished sending toSend={0}", toSend);
+                    PLog.DebugWriteLine("finished sending toSend={0}", toSend);
 
                     pos += toSend;
 
                     ConsoleProgress.Draw(i++, pos, fileSize, ini, Console.WindowWidth / 3);
 
-                    PLog.Verbose("");
-                    PLog.Verbose("Current: {0} / s",
+                    PLog.VerboseWriteLine("");
+                    PLog.VerboseWriteLine("Current: {0} / s",
                         SizeConverter.ConvertToSizeString(toSend / (Environment.TickCount - iteration + 1) * 1000));
 
-                    PLog.Verbose ("RTO={0} millis", conn.priv.rx_rto);
-                    PLog.Verbose ("Send buffer={0} bytes", conn.priv.sbuf.data_length);
+                    PLog.VerboseWriteLine ("RTO={0} millis", conn.priv.rx_rto);
+                    PLog.VerboseWriteLine ("Send buffer={0} bytes", conn.priv.sbuf.data_length);
 
                     //Console.WriteLine("BandwidthMbps {0} mbps.", conn.GetPerformanceInfo().Probe.BandwidthMbps);
                     //Console.WriteLine("RoundtripTime {0}.", conn.GetPerformanceInfo().Probe.RoundtripTime);
@@ -100,7 +100,7 @@ namespace p2pcopy
             Console.WriteLine ();
             while (conn.priv.sbuf.data_length != 0)
             {
-                PLog.Verbose ("Waiting for buffered data to finish sending...");
+                PLog.VerboseWriteLine ("Waiting for buffered data to finish sending...");
                 for (int i = 0; i < 20; i++) 
                 {
                     conn.NotifyClock();
@@ -114,9 +114,9 @@ namespace p2pcopy
 
         static void ProcessNotifyClockQueue(PseudoTcpSocket conn, Queue notifyClockQueue)
         {
-            PLog.Debug ("Entering ProcessNotifyClockQueue with queue size={0}", notifyClockQueue.Count);
+            PLog.DebugWriteLine ("Entering ProcessNotifyClockQueue with queue size={0}", notifyClockQueue.Count);
             if (notifyClockQueue.Count != 0) {
-                PLog.Debug ("...and head timestamp={0}, current time={1}", notifyClockQueue.Peek (), Environment.TickCount);
+                PLog.DebugWriteLine ("...and head timestamp={0}, current time={1}", notifyClockQueue.Peek (), Environment.TickCount);
             }
 
             if (notifyClockQueue.Count == 0)
@@ -145,11 +145,11 @@ namespace p2pcopy
         {
             int sent;
             do {
-                PLog.Debug ("Trying to send {0} bytes", fragmentSize);
+                PLog.DebugWriteLine ("Trying to send {0} bytes", fragmentSize);
                 sent = SyncPseudoTcpSocket.Send (conn, buffer, (uint)fragmentSize);
 
                 if (sent==-1) {
-                    PLog.Debug("sent==-1 so processing notifyClockQueue");
+                    PLog.DebugWriteLine("sent==-1 so processing notifyClockQueue");
                     ProcessNotifyClockQueue(conn, notifyClockQueue);
                 }
                 else {
@@ -157,7 +157,7 @@ namespace p2pcopy
                 }
                 UdpCallbacks.PollingSleep (sent, -1);
             } while (sent == -1);
-            PLog.Debug ("Tried sending fragment sized {0} with result {1}", fragmentSize, sent);
+            PLog.DebugWriteLine ("Tried sending fragment sized {0} with result {1}", fragmentSize, sent);
 
             return sent;
         }

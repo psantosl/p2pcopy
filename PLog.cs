@@ -7,17 +7,33 @@ namespace p2pcopy
         private static bool debug = false;
         private static bool verbose = false;
 
-        public static void SetDebug()
+        public static bool Debug
         {
-            debug = true;
+            get
+            {
+                return debug;
+            }
+
+            internal set
+            {
+                debug = value;
+            }
+        }
+            
+        public static bool Verbose
+        {
+            get
+            {
+                return verbose;
+            }
+
+            internal set
+            {
+                verbose = value;
+            }
         }
 
-        public static void SetVerbose()
-        {
-            verbose = true;
-        }
-
-        public static void Debug(string fmt, params object[] args)
+        public static void DebugWriteLine(string fmt, params object[] args)
         {
             if (debug)
             {
@@ -25,7 +41,7 @@ namespace p2pcopy
             }
         }
 
-        public static void Verbose(string fmt, params object[] args)
+        public static void VerboseWriteLine(string fmt, params object[] args)
         {
             if (verbose || debug)
             {
