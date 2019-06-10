@@ -5,6 +5,7 @@ using System.Net;
 using System.IO;
 using System.Threading;
 using PseudoTcp;
+using System.Runtime.InteropServices;
 
 namespace p2pcopy
 {
@@ -82,6 +83,7 @@ namespace p2pcopy
                 ParseRemoteAddr(peer, out remoteIp, out remotePort);
 
                 PseudoTcpSocket connection = PeerConnect(
+                    p2pEndPoint,
                     p2pEndPoint.External.Address.ToString(), p2pEndPoint.External.Port, 
                     socket, remoteIp, remotePort, cla);
                 PLog.DebugWriteLine("Called PeerConnect");
@@ -224,7 +226,15 @@ namespace p2pcopy
             return next;
         }
 
-        static PseudoTcpSocket PeerConnect(string externalAddr, int externalPort,
+        const String DLL = "udt-shim.so";
+        [DllImport(DLL, CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern int rendezvousConnect(int underlyingSocket,
+            [MarshalAs(UnmanagedType.LPStr)] string remoteHost,
+            int remotePort);
+
+        static PseudoTcpSocket PeerConnect(
+            P2pEndPoint p2pEndpoint,
+            string externalAddr, int externalPort,
                                             Socket socket, string remoteAddr, int remotePort,
                                             CommandLineArguments cla)
         {
@@ -247,6 +257,34 @@ namespace p2pcopy
                         now.ToLongTimeString(),
                         sleepTimeToSync);
                     System.Threading.Thread.Sleep(sleepTimeToSync * 1000);
+
+                    int p = (int) Environment.OSVersion.Platform;
+                    bool isLinux = (p == 4) || (p == 6) || (p == 128);
+                    if (isLinux)
+                    { 
+                        PLog.VerboseWriteLine("Linux: Calling rendezvousConnect...");
+                        int rvResult = rendezvousConnect(socket.Handle.ToInt32(), remoteAddr, remotePort);
+                        if (0 != rvResult)
+                        {
+                            continue;                    
+                        }
+                    }
+                    else
+                    {
+                        PLog.VerboseWriteLine("Windows: calling Udt.Connect");
+                        Udt.Socket us = new Udt.Socket(AddressFamily.InterNetwork, SocketType.Stream);
+                        us.SetSocketOption(Udt.SocketOptionName.Rendezvous, true);
+                        us.Bind(socket);
+                        us.Connect(remoteAddr, remotePort);
+                    }
+
+                    PLog.VerboseWriteLine("Rebinding socket for use by PseudoTcp");
+                    socket.Disconnect(true);
+                    socket = new Socket(
+                        AddressFamily.InterNetwork,
+                        SocketType.Dgram, ProtocolType.Udp);
+                    socket.SetSocketOption (SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+                    socket.Bind(p2pEndpoint.Internal);
                         
                     PseudoTcpSocket.Callbacks cbs = new PseudoTcpSocket.Callbacks();
                     UdpCallbacks icbs = new UdpCallbacks();
@@ -295,6 +333,7 @@ namespace p2pcopy
                 }
                 catch (Exception e)
                 {
+                    Console.WriteLine(e);
                     Console.WriteLine(e.Message.Replace(Environment.NewLine, ". "));
                     Console.WriteLine (e.StackTrace);
                     Console.WriteLine ("Inner exception=" + e.InnerException);
