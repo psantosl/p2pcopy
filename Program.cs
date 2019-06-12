@@ -230,7 +230,7 @@ namespace p2pcopy
         [DllImport(DLL, CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern int rendezvousConnect(int underlyingSocket,
             [MarshalAs(UnmanagedType.LPStr)] string remoteHost,
-            int remotePort);
+            int remotePort, bool debug);
 
         static PseudoTcpSocket PeerConnect(
             P2pEndPoint p2pEndpoint,
@@ -263,19 +263,16 @@ namespace p2pcopy
                     if (isLinux)
                     { 
                         PLog.VerboseWriteLine("Linux: Calling rendezvousConnect...");
-                        int rvResult = rendezvousConnect(socket.Handle.ToInt32(), remoteAddr, remotePort);
+                        int rvResult = rendezvousConnect(socket.Handle.ToInt32(), remoteAddr, remotePort, PLog.Debug);
                         if (0 != rvResult)
                         {
+                            PLog.VerboseWriteLine("rendezvousConnect failed");
                             continue;                    
                         }
                     }
                     else
                     {
-                        PLog.VerboseWriteLine("Windows: calling Udt.Connect");
-                        Udt.Socket us = new Udt.Socket(AddressFamily.InterNetwork, SocketType.Stream);
-                        us.SetSocketOption(Udt.SocketOptionName.Rendezvous, true);
-                        us.Bind(socket);
-                        us.Connect(remoteAddr, remotePort);
+                        WindowsUdtRendezvous(socket, remoteAddr, remotePort);
                     }
 
                     PLog.VerboseWriteLine("Rebinding socket for use by PseudoTcp");
@@ -342,6 +339,15 @@ namespace p2pcopy
             }
 
             return client;
+        }
+
+        static void WindowsUdtRendezvous(Socket socket, string remoteAddr, int remotePort)
+        {
+            PLog.VerboseWriteLine("Windows: calling Udt.Connect");
+            Udt.Socket us = new Udt.Socket(AddressFamily.InterNetwork, SocketType.Stream);
+            us.SetSocketOption(Udt.SocketOptionName.Rendezvous, true);
+            us.Bind(socket);
+            us.Connect(remoteAddr, remotePort);
         }
     }
 }
