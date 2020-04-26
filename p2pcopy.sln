@@ -1,9 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.21005.1
-MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "p2pcopy", "p2pcopy.csproj", "{6DAB1891-9A31-471A-BAC4-370C6D1D3801}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "p2pcopy", "p2pcopy.csproj", "{C321EC95-FD76-4803-8F97-EAF23A534F8B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,12 +8,9 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{6DAB1891-9A31-471A-BAC4-370C6D1D3801}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6DAB1891-9A31-471A-BAC4-370C6D1D3801}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6DAB1891-9A31-471A-BAC4-370C6D1D3801}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6DAB1891-9A31-471A-BAC4-370C6D1D3801}.Release|Any CPU.Build.0 = Release|Any CPU
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
+		{C321EC95-FD76-4803-8F97-EAF23A534F8B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C321EC95-FD76-4803-8F97-EAF23A534F8B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C321EC95-FD76-4803-8F97-EAF23A534F8B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C321EC95-FD76-4803-8F97-EAF23A534F8B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
