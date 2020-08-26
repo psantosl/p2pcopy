@@ -839,12 +839,12 @@ namespace p2pcopy
             {
                 throw new ArgumentException("Port value must be >= 1 !");
             }
-            if (socket.ProtocolType != ProtocolType.Udp)
-            {
-                throw new ArgumentException("Socket must be UDP socket !");
-            }
 
-            IPEndPoint remoteEndPoint = new IPEndPoint(System.Net.Dns.GetHostAddresses(host)[0], port);
+            IPEndPoint remoteEndPoint = new IPEndPoint(Dns.GetHostAddresses(host)[0], port);
+            if (remoteEndPoint.AddressFamily != AddressFamily.InterNetwork)
+            {
+                return new StunResult(StunNetType.UdpBlocked, null);
+            }
 
             socket.ReceiveTimeout = 3000;
             socket.SendTimeout = 3000;
