@@ -2,7 +2,7 @@
 using System.Net.Sockets;
 using System.Collections.Generic;
 using System.Net;
-using System.IO;
+using UdtSharp;
 
 namespace p2pcopy
 {
@@ -63,7 +63,7 @@ namespace p2pcopy
 
                 ParseRemoteAddr(peer, out remoteIp, out remotePort);
 
-                Udt.Socket connection = PeerConnect(socket, remoteIp, remotePort);
+                UdtSocket connection = PeerConnect(socket, remoteIp, remotePort);
 
                 if (connection == null)
                 {
@@ -191,12 +191,12 @@ namespace p2pcopy
             return next - now.Second;
         }
 
-        static Udt.Socket PeerConnect(Socket socket, string remoteAddr, int remotePort)
+        static UdtSocket PeerConnect(Socket socket, string remoteAddr, int remotePort)
         {
             bool bConnected = false;
             int retry = 0;
 
-            Udt.Socket client = null;
+            UdtSocket client = null;
 
             while (!bConnected)
             {
@@ -216,16 +216,13 @@ namespace p2pcopy
                     if (client != null)
                         client.Close();
 
-                    client = new Udt.Socket(AddressFamily.InterNetwork, SocketType.Stream);
-
-                    client.SetSocketOption(Udt.SocketOptionName.Rendezvous, true);
-
+                    client = new UdtSocket(socket.AddressFamily, socket.SocketType);
                     client.Bind(socket);
 
                     Console.Write("\r{0} - Trying to connect to {1}:{2}.  ",
                         retry++, remoteAddr, remotePort);
 
-                    client.Connect(remoteAddr, remotePort);
+                    client.Connect(new IPEndPoint(IPAddress.Parse(remoteAddr), remotePort));
 
                     Console.WriteLine("Connected successfully to {0}:{1}",
                         remoteAddr, remotePort);

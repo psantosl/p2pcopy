@@ -4,16 +4,17 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using UdtSharp;
 
 namespace p2pcopy
 {
     static class Receiver
     {
-        static internal void Run(Udt.Socket conn)
+        static internal void Run(UdtSocket conn)
         {
             int ini = Environment.TickCount;
 
-            using (Udt.NetworkStream netStream = new Udt.NetworkStream(conn))
+            using (UdtNetworkStream netStream = new UdtNetworkStream(conn))
             using (BinaryWriter writer = new BinaryWriter(netStream))
             using (BinaryReader reader = new BinaryReader(netStream))
             {

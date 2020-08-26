@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>p2pcopy</RootNamespace>
     <AssemblyName>p2pcopy</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <NuGetPackageImportStamp>093ed4b2</NuGetPackageImportStamp>
   </PropertyGroup>
@@ -35,8 +35,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
-    <Reference Include="UdtProtocol">
-      <HintPath>udt64\UdtProtocol.dll</HintPath>
+    <Reference Include="udtsharp">
+      <HintPath>packages\UdtSharp.0.1.0--date20201004-0708.git-86da089\lib\netstandard2.0\udtsharp.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

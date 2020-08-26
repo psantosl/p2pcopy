@@ -1,19 +1,16 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using UdtSharp;
 
 namespace p2pcopy
 {
     static class Sender
     {
-        static internal void Run(Udt.Socket conn, string file, bool bVerbose)
+        static internal void Run(UdtSocket conn, string file, bool bVerbose)
         {
             int ini = Environment.TickCount;
 
-            using (Udt.NetworkStream netStream = new Udt.NetworkStream(conn))
+            using (UdtNetworkStream netStream = new UdtNetworkStream(conn))
             using (BinaryWriter writer = new BinaryWriter(netStream))
             using (BinaryReader reader = new BinaryReader(netStream))
             using (FileStream fileReader = new FileStream(file, FileMode.Open, FileAccess.Read))
@@ -60,11 +57,6 @@ namespace p2pcopy
 
                         Console.WriteLine("Current: {0} / s",
                             SizeConverter.ConvertToSizeString(toSend / (Environment.TickCount - iteration) * 1000));
-
-                        Console.WriteLine("BandwidthMbps {0} mbps.", conn.GetPerformanceInfo().Probe.BandwidthMbps);
-                        Console.WriteLine("RoundtripTime {0}.", conn.GetPerformanceInfo().Probe.RoundtripTime);
-                        Console.WriteLine("SendMbps {0}.", conn.GetPerformanceInfo().Local.SendMbps);
-                        Console.WriteLine("ReceiveMbps {0}.", conn.GetPerformanceInfo().Local.ReceiveMbps);
                     }
                 }
             }
