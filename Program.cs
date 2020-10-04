@@ -3,8 +3,6 @@ using System.Net.Sockets;
 using System.Collections.Generic;
 using System.Net;
 using System.IO;
-using System.Threading;
-using PseudoTcp;
 
 namespace p2pcopy
 {
@@ -26,7 +24,6 @@ namespace p2pcopy
             Socket socket = new Socket(
                 AddressFamily.InterNetwork,
                 SocketType.Dgram, ProtocolType.Udp);
-            socket.SetSocketOption (SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
 
             try
             {
@@ -43,9 +40,6 @@ namespace p2pcopy
                 socket.Bind(new IPEndPoint(IPAddress.Any, cla.LocalPort));
 
                 P2pEndPoint p2pEndPoint = GetExternalEndPoint(socket);
-
-                Console.WriteLine("p2pEndPoint external=" + p2pEndPoint.External);
-                Console.WriteLine("p2pEndPoint internal=" + p2pEndPoint.Internal);
 
                 if (p2pEndPoint == null)
                     return;
@@ -69,10 +63,7 @@ namespace p2pcopy
 
                 ParseRemoteAddr(peer, out remoteIp, out remotePort);
 
-                PseudoTcpSocket connection = PeerConnect(
-                    p2pEndPoint.External.Address.ToString(), p2pEndPoint.External.Port, 
-                    socket, remoteIp, remotePort, cla);
-                Console.WriteLine("Called PeerConnect");
+                Udt.Socket connection = PeerConnect(socket, remoteIp, remotePort);
 
                 if (connection == null)
                 {
@@ -85,15 +76,14 @@ namespace p2pcopy
                     if (args[0] == "sender")
                     {
                         Sender.Run(connection, cla.File, cla.Verbose);
+                        return;
                     }
-                    else
-                    {
-                        Receiver.Run(connection);
-                    }
+
+                    Receiver.Run(connection);
                 }
                 finally
                 {
-                    connection.Close(false);
+                    connection.Close();
                 }
             }
             finally
@@ -192,89 +182,59 @@ namespace p2pcopy
             };
         }
 
-        static int NextTime(DateTime now)
+        static int SleepTime(DateTime now)
         {
-            List<int> seconds = Config.CONNECTION_SYNC_TIMES;
+            List<int> seconds = new List<int>() {10, 20, 30, 40, 50, 60};
 
             int next = seconds.Find(x => x > now.Second);
 
-            return next;
+            return next - now.Second;
         }
 
-        static PseudoTcpSocket PeerConnect(string externalAddr, int externalPort,
-                                            Socket socket, string remoteAddr, int remotePort,
-                                            CommandLineArguments cla)
+        static Udt.Socket PeerConnect(Socket socket, string remoteAddr, int remotePort)
         {
             bool bConnected = false;
             int retry = 0;
 
-            PseudoTcpSocket client = null;
+            Udt.Socket client = null;
 
             while (!bConnected)
             {
                 try
                 {
-                    Console.WriteLine("Getting internet time");
                     DateTime now = InternetTime.Get();
 
-                    int nextTimeToSync = NextTime(now);
-                    int sleepTimeToSync = nextTimeToSync - now.Second;
+                    int sleepTimeToSync = SleepTime(now);
 
                     Console.WriteLine("[{0}] - Waiting {1} sec to sync with other peer",
                         now.ToLongTimeString(),
                         sleepTimeToSync);
                     System.Threading.Thread.Sleep(sleepTimeToSync * 1000);
-                        
-                    PseudoTcpSocket.Callbacks cbs = new PseudoTcpSocket.Callbacks();
-                    UdpCallbacks icbs = new UdpCallbacks();
-                    cbs.WritePacket = icbs.WritePacket;
-                    cbs.PseudoTcpOpened = icbs.Opened;
-                    cbs.PseudoTcpWritable = icbs.Writable;
-                    cbs.PseudoTcpClosed = icbs.Closed;
-                    client = PseudoTcpSocket.Create(0, cbs);
-                    client.NotifyMtu(1496); // Per PseudoTcpTests
-                    bool success = icbs.Init(externalAddr, externalPort, remoteAddr, remotePort, 
-                        client, socket, cla.Sender, nextTimeToSync);
-                    if (false==success)
-                    {
-                        continue;
-                    }
-                    PLog.DEBUG("Created PseudoTcpSocket");
 
-                    Console.WriteLine("\r{0} - Trying to connect to {1}:{2}.  ",
+                    GetExternalEndPoint(socket);
+
+                    if (client != null)
+                        client.Close();
+
+                    client = new Udt.Socket(AddressFamily.InterNetwork, SocketType.Stream);
+
+                    client.SetSocketOption(Udt.SocketOptionName.Rendezvous, true);
+
+                    client.Bind(socket);
+
+                    Console.Write("\r{0} - Trying to connect to {1}:{2}.  ",
                         retry++, remoteAddr, remotePort);
 
-                    if (cla.Sender) {
-                        PLog.DEBUG("Sender: calling PseudoTcpSocket.Connect");
-                        client.Connect();
-                    }
+                    client.Connect(remoteAddr, remotePort);
 
-                    int startTime = Environment.TickCount;
-                    while (false==bConnected) {
-                        Console.WriteLine("priv.state=={0}", client.priv.state);
-                        if (PseudoTcpSocket.PseudoTcpState.Values.TCP_ESTABLISHED == client.priv.state) {
-                            Console.WriteLine("Connected successfully to {0}:{1}",
-                                remoteAddr, remotePort);
+                    Console.WriteLine("Connected successfully to {0}:{1}",
+                        remoteAddr, remotePort);
 
-                            bConnected = true;
-                        }
-                        else {
-                            if (Environment.TickCount > startTime + Config.MAX_TCP_HANDSHAKE_TIME) {
-                                Console.WriteLine("5 secs timed out with priv.state={0}", client.priv.state);
-                                break;
-                            }
-                            else {
-                                Console.WriteLine("Waiting for TCP_ESTABLISHED...");
-                                Thread.Sleep(500);
-                            }
-                        }
-                    }
+                    bConnected = true;
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e.Message.Replace(Environment.NewLine, ". "));
-                    Console.WriteLine (e.StackTrace);
-                    Console.WriteLine ("Inner exception=" + e.InnerException);
+                    Console.Write(e.Message.Replace(Environment.NewLine, ". "));
                 }
             }
 

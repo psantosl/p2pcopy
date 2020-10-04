@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -38,9 +38,6 @@
     <Reference Include="UdtProtocol">
       <HintPath>udt64\UdtProtocol.dll</HintPath>
     </Reference>
-    <Reference Include="Costura">
-      <HintPath>packages\Costura.Fody.4.0.0\lib\net40\Costura.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ConsoleProgress.cs" />
@@ -51,13 +48,6 @@
     <Compile Include="Sender.cs" />
     <Compile Include="SizeConverter.cs" />
     <Compile Include="StunClient.cs" />
-    <Compile Include=".\PseudoTcpSharp\pseudotcp.cs">
-      <Link>pseudotcp.cs</Link>
-    </Compile>
-    <Compile Include="PLog.cs" />
-    <Compile Include="SyncPseudoTcpSocket.cs" />
-    <Compile Include="UdpCallbacks.cs" />
-    <Compile Include="Config.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">
@@ -74,10 +64,13 @@
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="packages\Fody.5.0.0.0\build\Fody.targets" Condition="Exists('packages\Fody.5.0.0.0\build\Fody.targets')" />
-  <Import Project="packages\Costura.Fody.4.0.0.0\build\Costura.Fody.props" Condition="Exists('packages\Costura.Fody.4.0.0.0\build\Costura.Fody.props')" />
-  <Import Project="packages\Fody.5.0.0.0\build\Fody.targets" Condition="Exists('packages\Fody.5.0.0.0\build\Fody.targets')" />
-  <Import Project="packages\Costura.Fody.4.0.0.0\build\Costura.Fody.props" Condition="Exists('packages\Costura.Fody.4.0.0.0\build\Costura.Fody.props')" />
+  <Import Project="packages\Fody.1.28.3\build\Fody.targets" Condition="Exists('packages\Fody.1.28.3\build\Fody.targets')" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('packages\Fody.1.28.3\build\Fody.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Fody.1.28.3\build\Fody.targets'))" />
+  </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
