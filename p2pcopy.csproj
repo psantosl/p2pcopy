@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>p2pcopy</RootNamespace>
     <AssemblyName>p2pcopy</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <NuGetPackageImportStamp>093ed4b2</NuGetPackageImportStamp>
   </PropertyGroup>
@@ -35,11 +35,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
-    <Reference Include="UdtProtocol">
-      <HintPath>udt64\UdtProtocol.dll</HintPath>
-    </Reference>
-    <Reference Include="Costura">
-      <HintPath>packages\Costura.Fody.4.0.0\lib\net40\Costura.dll</HintPath>
+    <Reference Include="udtsharp">
+      <HintPath>packages\UdtSharp.0.1.0--date20201004-0708.git-86da089\lib\netstandard2.0\udtsharp.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -51,13 +48,6 @@
     <Compile Include="Sender.cs" />
     <Compile Include="SizeConverter.cs" />
     <Compile Include="StunClient.cs" />
-    <Compile Include=".\PseudoTcpSharp\pseudotcp.cs">
-      <Link>pseudotcp.cs</Link>
-    </Compile>
-    <Compile Include="PLog.cs" />
-    <Compile Include="SyncPseudoTcpSocket.cs" />
-    <Compile Include="UdpCallbacks.cs" />
-    <Compile Include="Config.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">
@@ -65,19 +55,8 @@
     </None>
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="costura64\msvcp100.dll" />
-    <EmbeddedResource Include="costura64\msvcr100.dll" />
-    <Content Include="FodyWeavers.xml">
-      <SubType>Designer</SubType>
-    </Content>
-  </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="packages\Fody.5.0.0.0\build\Fody.targets" Condition="Exists('packages\Fody.5.0.0.0\build\Fody.targets')" />
-  <Import Project="packages\Costura.Fody.4.0.0.0\build\Costura.Fody.props" Condition="Exists('packages\Costura.Fody.4.0.0.0\build\Costura.Fody.props')" />
-  <Import Project="packages\Fody.5.0.0.0\build\Fody.targets" Condition="Exists('packages\Fody.5.0.0.0\build\Fody.targets')" />
-  <Import Project="packages\Costura.Fody.4.0.0.0\build\Costura.Fody.props" Condition="Exists('packages\Costura.Fody.4.0.0.0\build\Costura.Fody.props')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

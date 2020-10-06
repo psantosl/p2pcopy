@@ -1,0 +1,15 @@
+name: ci
+on: push
+
+env:
+  NUGET_URL: https://dist.nuget.org/win-x86-commandline/v5.4.0/nuget.exe
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v1
+    - name: Build
+      run: |
+        mkdir .nuget && cd .nuget && wget $NUGET_URL && cd ..
+        mono .nuget/nuget.exe restore p2pcopy.sln
+        msbuild
