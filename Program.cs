@@ -16,17 +16,20 @@ namespace p2pcopy
             if (cla == null || (!cla.Sender && !cla.Receiver))
             {
                 CommandLineArguments.ShowUsage();
+                Environment.Exit(1);
                 return;
             }
             else if (cla.Sender && String.IsNullOrEmpty(cla.File))
             {
                 CommandLineArguments.ShowUsage();
+                Environment.Exit(1);
                 return;
             }
 
             if (cla.File != null && (!(File.Exists(cla.File))))
             {
                 Console.Error.WriteLine($"File {cla.File} does not exist");
+                Environment.Exit(2);
                 return;
             }
 
@@ -80,6 +83,7 @@ namespace p2pcopy
                 if (connection == null)
                 {
                     Console.Error.WriteLine("Failed to establish P2P conn to {0}", remoteIp);
+                    Environment.Exit(3);
                     return;
                 }
 
