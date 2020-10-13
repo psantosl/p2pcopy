@@ -1,3 +1,4 @@
+using System.IO;
 ﻿using System;
 using System.Net.Sockets;
 using System.Collections.Generic;
@@ -15,6 +16,17 @@ namespace p2pcopy
             if (cla == null || (!cla.Sender && !cla.Receiver))
             {
                 CommandLineArguments.ShowUsage();
+                return;
+            }
+            else if (cla.Sender && String.IsNullOrEmpty(cla.File))
+            {
+                CommandLineArguments.ShowUsage();
+                return;
+            }
+
+            if (cla.File != null && (!(File.Exists(cla.File))))
+            {
+                Console.Error.WriteLine($"File {cla.File} does not exist");
                 return;
             }
 
