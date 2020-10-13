@@ -67,7 +67,7 @@ namespace p2pcopy
 
                 if (connection == null)
                 {
-                    Console.WriteLine("Failed to establish P2P conn to {0}", remoteIp);
+                    Console.Error.WriteLine("Failed to establish P2P conn to {0}", remoteIp);
                     return;
                 }
 
