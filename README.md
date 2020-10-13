@@ -1,5 +1,7 @@
 # p2pcopy
-Small command line application to do p2p file copy behind firewalls without a central server. It uses [UDT](http://udt.sourceforge.net).
+Small command line application to do p2p file copy behind firewalls without a central server.
+
+It uses the [UDT protocol](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) via [UdtSharp](https://github.com/PlasticSCM/UdtSharp) (a previous version of p2pcopy was using the Windows-only native library [UDT](http://udt.sourceforge.net) under the hood, but now it's cross-platform thanks to 100% fully-managed code).
 
 # Motivation
 You are on a Slack/Skype/whatever session and need to send a 10GB virtual machine to a team mate. Uploading it to a central server doesn't seem to be a good option, so you would love to just start a P2P private connection between the two to send a file.
