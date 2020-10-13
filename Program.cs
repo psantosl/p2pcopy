@@ -73,7 +73,7 @@ namespace p2pcopy
 
                 try
                 {
-                    if (args[0] == "sender")
+                    if (cla.Sender)
                     {
                         Sender.Run(connection, cla.File, cla.Verbose);
                         return;
