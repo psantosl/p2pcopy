@@ -155,7 +155,7 @@ namespace p2pcopy
 
             static internal void ShowUsage()
             {
-                Console.WriteLine("p2pcopy [sender --file file_to_send |receiver]");
+                Console.WriteLine("p2pcopy [receiver|sender --file file_to_send]");
             }
         }
 
