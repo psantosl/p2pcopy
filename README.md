@@ -114,7 +114,7 @@ But here we do not use a central server, the exchange is done manually by the us
 So, in initial versions, users had to be very careful to "try to start at the same time" (basically type the IP:port of the other side and hit ENTER almost at the same time), which was painful.
 
 The solution (that works pretty well on most cases) is as follows:
-* Each peer gets the internet time (using a simple class from StackOverflow).
+* Each peer gets the internet time via NTP.
 * Then they decide to "start" on second 0, 10, 20, 30... of every minute, so they work synchronized even when the users don't hit ENTER at the same time (which, as I said, basically rendered it unusable).
 
 
