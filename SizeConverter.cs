@@ -1,49 +1,49 @@
 ﻿namespace p2pcopy
 {
+    internal enum DataSizeUnit
+    {
+        Bytes = 1,
+        KiloBytes = 1024,
+        MegaBytes = 1024 * 1024,
+        GigaBytes = 1024 * 1024 * 1024
+    };
+
     internal static class SizeConverter
     {
-        internal enum EnumUnitSize
-        {
-            sizeBytes = 1,
-            sizeKiloBytes = 1024,
-            sizeMegaBytes = 1024 * 1024,
-            sizeGygaBytes = 1024 * 1024 * 1024
-        };
-
         internal static string ConvertToSizeString(long size)
         {
-            SizeConverter.EnumUnitSize totalSizeUnit = SizeConverter.GetSuitableUnit(size);
+            DataSizeUnit totalSizeUnit = SizeConverter.GetSuitableUnit(size);
             return string.Format("{0:#0.##} {1}", SizeConverter.ConvertToSize(
                 size, totalSizeUnit), SizeConverter.GetUnitString(totalSizeUnit));
         }
 
-        internal static float ConvertToSize(long size, EnumUnitSize unit)
+        internal static float ConvertToSize(long size, DataSizeUnit unit)
         {
             return (float)size / (float)unit;
         }
 
-        static string GetUnitString(EnumUnitSize unit)
+        static string GetUnitString(DataSizeUnit unit)
         {
             switch (unit)
             {
-                case EnumUnitSize.sizeBytes: return "bytes";
-                case EnumUnitSize.sizeKiloBytes: return "KB";
-                case EnumUnitSize.sizeMegaBytes: return "MB";
-                case EnumUnitSize.sizeGygaBytes: return "GB";
+                case DataSizeUnit.Bytes: return "bytes";
+                case DataSizeUnit.KiloBytes: return "KB";
+                case DataSizeUnit.MegaBytes: return "MB";
+                case DataSizeUnit.GigaBytes: return "GB";
             }
             return string.Empty;
         }
 
-        static EnumUnitSize GetSuitableUnit(long size)
+        static DataSizeUnit GetSuitableUnit(long size)
         {
-            if (size >= 0 && size < (long)EnumUnitSize.sizeKiloBytes)
-                return EnumUnitSize.sizeBytes;
-            else if (size >= (long)EnumUnitSize.sizeKiloBytes && size <= (long)EnumUnitSize.sizeMegaBytes)
-                return EnumUnitSize.sizeKiloBytes;
-            else if (size >= (long)EnumUnitSize.sizeMegaBytes && size <= (long)EnumUnitSize.sizeGygaBytes)
-                return EnumUnitSize.sizeMegaBytes;
+            if (size >= 0 && size < (long)DataSizeUnit.KiloBytes)
+                return DataSizeUnit.Bytes;
+            else if (size >= (long)DataSizeUnit.KiloBytes && size <= (long)DataSizeUnit.MegaBytes)
+                return DataSizeUnit.KiloBytes;
+            else if (size >= (long)DataSizeUnit.MegaBytes && size <= (long)DataSizeUnit.GigaBytes)
+                return DataSizeUnit.MegaBytes;
             else
-                return EnumUnitSize.sizeGygaBytes;
+                return DataSizeUnit.GigaBytes;
         }
     }
 }
