@@ -14,9 +14,9 @@ namespace p2pcopy
         {
             int ini = Environment.TickCount;
 
-            using (UdtNetworkStream netStream = new UdtNetworkStream(conn))
-            using (BinaryWriter writer = new BinaryWriter(netStream))
-            using (BinaryReader reader = new BinaryReader(netStream))
+            using (var netStream = new UdtNetworkStream(conn))
+            using (var writer = new BinaryWriter(netStream))
+            using (var reader = new BinaryReader(netStream))
             {
                 string fileName = reader.ReadString();
                 long size = reader.ReadInt64();
