@@ -959,7 +959,7 @@ namespace p2pcopy
                         StunMessage test12Response = DoTransaction(test12, socket, test1response.ChangedAddress);
                         if (test12Response == null)
                         {
-                            throw new Exception("STUN Test I(II) dind't get resonse !");
+                            throw new Exception("STUN Test I(II) didn't get response!");
                         }
                         else
                         {
