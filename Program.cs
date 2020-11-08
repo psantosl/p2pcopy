@@ -1,3 +1,4 @@
+using System.IO;
 ﻿using System;
 using System.Net.Sockets;
 using System.Collections.Generic;
@@ -15,6 +16,20 @@ namespace p2pcopy
             if (cla == null || (!cla.Sender && !cla.Receiver))
             {
                 CommandLineArguments.ShowUsage();
+                Environment.Exit(1);
+                return;
+            }
+            else if (cla.Sender && String.IsNullOrEmpty(cla.File))
+            {
+                CommandLineArguments.ShowUsage();
+                Environment.Exit(1);
+                return;
+            }
+
+            if (cla.File != null && (!(File.Exists(cla.File))))
+            {
+                Console.Error.WriteLine($"File {cla.File} does not exist");
+                Environment.Exit(2);
                 return;
             }
 
@@ -67,13 +82,14 @@ namespace p2pcopy
 
                 if (connection == null)
                 {
-                    Console.WriteLine("Failed to establish P2P conn to {0}", remoteIp);
+                    Console.Error.WriteLine("Failed to establish P2P conn to {0}", remoteIp);
+                    Environment.Exit(3);
                     return;
                 }
 
                 try
                 {
-                    if (args[0] == "sender")
+                    if (cla.Sender)
                     {
                         Sender.Run(connection, cla.File, cla.Verbose);
                         return;
@@ -143,7 +159,7 @@ namespace p2pcopy
 
             static internal void ShowUsage()
             {
-                Console.WriteLine("p2pcopy [sender --file file_to_send |receiver]");
+                Console.WriteLine("p2pcopy [receiver|sender --file file_to_send]");
             }
         }
 
