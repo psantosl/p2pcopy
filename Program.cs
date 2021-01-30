@@ -9,6 +9,9 @@ namespace p2pcopy
 {
     class Program
     {
+        public static string ReceiverRole = "receiver";
+        public static string SenderRole = "sender";
+
         static void Main(string[] args)
         {
             CommandLineArguments cla = CommandLineArguments.Parse(args);

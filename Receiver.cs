@@ -18,6 +18,16 @@ namespace p2pcopy
             using (var writer = new BinaryWriter(netStream))
             using (var reader = new BinaryReader(netStream))
             {
+                // transmit your role and check if connected peer has the correct role
+                writer.Write(Program.ReceiverRole);
+                string role = reader.ReadString();
+
+                if (role == Program.ReceiverRole)
+                {
+                    Console.Error.WriteLine("Peers can't have the same role.");
+                    return;
+                }
+
                 string fileName = reader.ReadString();
                 long size = reader.ReadInt64();
 
