@@ -1,5 +1,5 @@
 using System.IO;
-﻿using System;
+using System;
 using System.Net.Sockets;
 using System.Collections.Generic;
 using System.Net;
@@ -9,9 +9,6 @@ namespace p2pcopy
 {
     class Program
     {
-        public static string ReceiverRole = "receiver";
-        public static string SenderRole = "sender";
-
         static void Main(string[] args)
         {
             CommandLineArguments cla = CommandLineArguments.Parse(args);
@@ -478,10 +475,9 @@ namespace p2pcopy
             return null;
         }
 
-
         static int SleepTime(DateTime now)
         {
-            List<int> seconds = new List<int>() {10, 20, 30, 40, 50, 60};
+            List<int> seconds = new List<int>() { 10, 20, 30, 40, 50, 60 };
 
             int next = seconds.Find(x => x > now.Second);
 

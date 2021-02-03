@@ -45,6 +45,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Receiver.cs" />
+    <Compile Include="Roles.cs" />
     <Compile Include="Sender.cs" />
     <Compile Include="SizeConverter.cs" />
     <Compile Include="StunClient.cs" />

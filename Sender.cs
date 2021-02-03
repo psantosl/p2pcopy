@@ -6,6 +6,8 @@ namespace p2pcopy
 {
     static class Sender
     {
+        const Roles myRole = Roles.Sender;
+
         static internal void Run(UdtSocket conn, string file, bool bVerbose)
         {
             int ini = Environment.TickCount;
@@ -15,10 +17,11 @@ namespace p2pcopy
             using (var reader = new BinaryReader(netStream))
             using (var fileReader = new FileStream(file, FileMode.Open, FileAccess.Read))
             {
-                // transmit your role and check if connected peer has the correct role
-                writer.Write(Program.SenderRole);
+                // transmit your role and check if connected peer has the opposite role
+                writer.Write(myRole.ToString());
                 string role = reader.ReadString();
-                if (role == Program.SenderRole)
+
+                if (role == myRole.ToString())
                 {
                     Console.Error.WriteLine("Peers can't have the same role.");
                     return;

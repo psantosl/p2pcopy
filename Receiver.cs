@@ -1,15 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using UdtSharp;
 
 namespace p2pcopy
 {
     static class Receiver
     {
+        const Roles myRole = Roles.Receiver;
+
         static internal void Run(UdtSocket conn)
         {
             int ini = Environment.TickCount;
@@ -18,11 +16,11 @@ namespace p2pcopy
             using (var writer = new BinaryWriter(netStream))
             using (var reader = new BinaryReader(netStream))
             {
-                // transmit your role and check if connected peer has the correct role
-                writer.Write(Program.ReceiverRole);
+                // transmit your role and check if connected peer has the opposite role
+                writer.Write(myRole.ToString());
                 string role = reader.ReadString();
 
-                if (role == Program.ReceiverRole)
+                if (role == myRole.ToString())
                 {
                     Console.Error.WriteLine("Peers can't have the same role.");
                     return;
