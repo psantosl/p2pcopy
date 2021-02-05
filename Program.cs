@@ -477,7 +477,7 @@ namespace p2pcopy
 
         static int SleepTime(DateTime now)
         {
-            List<int> seconds = new List<int>() { 10, 20, 30, 40, 50, 60 };
+            List<int> seconds = new List<int>() {10, 20, 30, 40, 50, 60};
 
             int next = seconds.Find(x => x > now.Second);
 
