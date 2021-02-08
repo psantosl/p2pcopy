@@ -1,5 +1,5 @@
 using System.IO;
-﻿using System;
+using System;
 using System.Net.Sockets;
 using System.Collections.Generic;
 using System.Net;
@@ -474,7 +474,6 @@ namespace p2pcopy
             Console.WriteLine("Could not find a working STUN server");
             return null;
         }
-
 
         static int SleepTime(DateTime now)
         {
