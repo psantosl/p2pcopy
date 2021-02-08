@@ -23,6 +23,7 @@ namespace p2pcopy
                 if (role == myRole.ToString())
                 {
                     Console.Error.WriteLine("Peers can't have the same role.");
+                    Environment.Exit(1);
                     return;
                 }
 
