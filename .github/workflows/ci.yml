@@ -29,7 +29,7 @@ jobs:
 
     strategy:
       matrix:
-        runtime-framework: [win-x64, linux-x64, osx-x64, win-x86, win-arm, win-arm64, linux-musl-x64, linux-arm, linux-arm64]
+        runtime-identifier: [win-x64, linux-x64, osx-x64, win-x86, win-arm, win-arm64, linux-musl-x64, linux-arm, linux-arm64]
       fail-fast: false
 
     steps:
@@ -43,13 +43,13 @@ jobs:
       with:
         dotnet-version: 5.0.x
 
-    - name: Publish ${{ matrix.runtime-framework }}
-      run: dotnet publish -c Release -r ${{ matrix.runtime-framework }} /p:PublishProfile=SingleFileSelfContainer -o artifacts/${{ matrix.runtime-framework }}
+    - name: Publish ${{ matrix.runtime-identifier }}
+      run: dotnet publish -c Release -r ${{ matrix.runtime-identifier }} /p:PublishProfile=SingleFileSelfContainer -o artifacts/${{ matrix.runtime-identifier }}
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v2
       with:
-        name: p2pcopy-${{ matrix.runtime-framework }}-ci-${{ github.run_number }}
+        name: p2pcopy-${{ matrix.runtime-identifier }}-ci-${{ github.run_number }}
         path: |
-          artifacts/${{ matrix.runtime-framework }}
+          artifacts/${{ matrix.runtime-identifier }}
         if-no-files-found: error
