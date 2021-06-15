@@ -1,5 +1,7 @@
 bin
 obj
 .vs
+.vscode
 packages/
 .nuget/
+artifacts/

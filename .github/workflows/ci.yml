@@ -4,12 +4,52 @@ on: push
 env:
   NUGET_URL: https://dist.nuget.org/win-x86-commandline/v5.4.0/nuget.exe
 jobs:
-  build_and_deploy:
-    runs-on: ubuntu-18.04
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+      fail-fast: false
+
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
+
+    - name: Setup .NET 5
+      uses: actions/setup-dotnet@v1.7.2
+      with:
+        dotnet-version: 5.0.x
+
     - name: Build
-      run: |
-        mkdir .nuget && cd .nuget && wget $NUGET_URL && cd ..
-        mono .nuget/nuget.exe restore p2pcopy.sln
-        msbuild
+      run: dotnet build -c Release
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        runtime-framework: [win-x64, linux-x64, osx-x64, win-x86, win-arm, win-arm64, linux-musl-x64, linux-arm, linux-arm64]
+      fail-fast: false
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Inject slug/short variables
+      uses: rlespinasse/github-slug-action@v3.x
+
+    - name: Setup .NET 5
+      uses: actions/setup-dotnet@v1.7.2
+      with:
+        dotnet-version: 5.0.x
+
+    - name: Publish ${{ matrix.runtime-framework }}
+      run: dotnet publish -c Release -r ${{ matrix.runtime-framework }} /p:PublishProfile=SingleFileSelfContainer -o artifacts/${{ matrix.runtime-framework }}
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: p2pcopy-${{ matrix.runtime-framework }}-ci-${{ github.run_number }}
+        path: |
+          artifacts/${{ matrix.runtime-framework }}
+        if-no-files-found: error

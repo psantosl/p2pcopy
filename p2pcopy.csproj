@@ -6,10 +6,17 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
 
-
   <ItemGroup>
     <PackageReference Include="UdtSharp" Version="0.1.0--date20201004-0708.git-86da089" />
     <PackageReference Include="TextCopy" Version="4.3.1" />
   </ItemGroup>
+
+  <Target Name="RenameApp" AfterTargets="Publish">
+    <ItemGroup>
+      <FilesToRename Include="$(PublishDir)\$(AssemblyName)*" />
+    </ItemGroup>
+    <Message Text="## Renaming @(FilesToRename) to @(FilesToRename -> Replace('$(RuntimeIdentifier)\$(AssemblyName)', '$(RuntimeIdentifier)\$(AssemblyName)-$(RuntimeIdentifier)'))" Importance="High" />
+    <Move SourceFiles="@(FilesToRename)" DestinationFiles="@(FilesToRename -> Replace('$(RuntimeIdentifier)\$(AssemblyName)', '$(RuntimeIdentifier)\$(AssemblyName)-$(RuntimeIdentifier)'))" />
+  </Target>
 
 </Project>
