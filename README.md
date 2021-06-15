@@ -1,9 +1,11 @@
 # p2pcopy
+
 Small command line application to do p2p file copy behind firewalls without a central server.
 
 It uses the [UDT protocol](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) via [UdtSharp](https://github.com/PlasticSCM/UdtSharp) (a previous version of p2pcopy was using the Windows-only native library [UDT](http://udt.sourceforge.net) under the hood, but now it's cross-platform thanks to 100% fully-managed code).
 
 # Motivation
+
 You are on a Slack/Skype/whatever session and need to send a 10GB virtual machine to a team mate. Uploading it to a central server doesn't seem to be a good option, so you would love to just start a P2P private connection between the two to send a file.
 
 This is exactly what p2pcopy is all about.
@@ -17,12 +19,14 @@ Other (nicer) alternatives exist, web based (WebRTC in fact) (even serverless [l
 It is built on top of UDT, the famous library to speed up data transfer on high bandwidth, high latency networks. It includes a "rendezvous" mode to perform UDP hole punching, and that's what I use.
 
 # How to use it
+
 The two peers will need a copy of p2p.exe, then one will act as "sender" and the other as "receiver" (in fact, using the commands with these names).
 
 ## Sender
-I'm specifiying a local port, which is not mandatory, you can skip the --localport.
 
-```
+I'm specifying a local port, which is not mandatory, you can skip the --localport.
+
+```bash
 >p2pcopy.exe sender --localport 4300 --file 03183u.tif
 Using local port: 4300
 Your firewall is FullCone
@@ -38,7 +42,8 @@ Your firewall is FullCone
 ```
 
 ## Receiver
-```
+
+```bash
 >p2pcopy.exe receiver --localport 21300
 Using local port: 21300
 Your firewall is FullCone
@@ -55,10 +60,12 @@ Your firewall is FullCone
 ```
 
 ## Potential connection problems
+
 Sometimes the two peers try to punch a hole on their routers but they don't succeed. If that happens, simply retry and eventually (normally works well) it will work.
 
 A sample failed session looks as follows:
-```
+
+```bash
 >p2pcopy.exe sender --localport 60300 --file 03183u.tif
 Using local port: 60300
 Your firewall is FullCone
@@ -79,16 +86,17 @@ It is a pain when it happens, but... well, this is p2p like it is 1995 :P
 
 Once you get an open port that works, you can reuse it both on sender and receiver by using the --localport option:
 
-```p2pcopy.exe sender --localport 60300 --file 03183u.tif```
+`p2pcopy.exe sender --localport 60300 --file 03183u.tif`
 
 # How does it work
-The implementation is extremly simple:
 
-* Both peers connect to an external public STUN server to get their public IPs and ports. This is the only connection to an external server, and it doesn't require you to have any account or login or anything.
-* Then each peer reuses the UDP socket used for STUN to create a UDT socket.
-* On both sides, each peer tries to connect (socket.connect) with the other one using the UDT ''rendezvous'' mode:
+The implementation is extremely simple:
 
-```
+- Both peers connect to an external public STUN server to get their public IPs and ports. This is the only connection to an external server, and it doesn't require you to have any account or login or anything.
+- Then each peer reuses the UDP socket used for STUN to create a UDT socket.
+- On both sides, each peer tries to connect (socket.connect) with the other one using the UDT ''rendezvous'' mode:
+
+```csharp
                     client = new Udt.Socket(AddressFamily.InterNetwork, SocketType.Stream);
 
                     client.SetSocketOption(Udt.SocketOptionName.Rendezvous, true);
@@ -106,9 +114,10 @@ The implementation is extremly simple:
 
 Yes, each socket simply does ''connect'' and nobody is doing ''listen'' or ''accept'' but it works. This is how hole punching goes.
 
-* Once the connection is established, regular socket stuff happens, and the file is sent in chunks to the receiver.
+- Once the connection is established, regular socket stuff happens, and the file is sent in chunks to the receiver.
 
 ## Interesting point: use internet time to synchronize
+
 There is one interesting point to highlight: when you exchange public IPs using a central server, synchronization is rather easy because each peer receives the IP of the other side, then tries to connect, and more likely the connection attempt happens at the same time.
 
 But here we do not use a central server, the exchange is done manually by the user (to avoid any sort of central 'directory service').
@@ -116,8 +125,6 @@ But here we do not use a central server, the exchange is done manually by the us
 So, in initial versions, users had to be very careful to "try to start at the same time" (basically type the IP:port of the other side and hit ENTER almost at the same time), which was painful.
 
 The solution (that works pretty well on most cases) is as follows:
-* Each peer gets the internet time via NTP.
-* Then they decide to "start" on second 0, 10, 20, 30... of every minute, so they work synchronized even when the users don't hit ENTER at the same time (which, as I said, basically rendered it unusable).
 
-
-
+- Each peer gets the internet time via NTP.
+- Then they decide to "start" on second 0, 10, 20, 30... of every minute, so they work synchronized even when the users don't hit ENTER at the same time (which, as I said, basically rendered it unusable).
