@@ -1049,42 +1049,7 @@ namespace p2pcopy
 
     }
 
-    internal class StunResult
-    {
-        readonly StunNetType m_NetType = StunNetType.OpenInternet;
-        readonly IPEndPoint m_pPublicEndPoint = null;
-
-        /// <summary>
-        /// Default constructor.
-        /// </summary>
-        /// <param name="netType">Specifies UDP network type.</param>
-        /// <param name="publicEndPoint">Public IP end point.</param>
-        internal StunResult(StunNetType netType, IPEndPoint publicEndPoint)
-        {
-            m_NetType = netType;
-            m_pPublicEndPoint = publicEndPoint;
-        }
-
-        #region Properties Implementation
-
-        /// <summary>
-        /// Gets UDP network type.
-        /// </summary>
-        internal StunNetType NetType
-        {
-            get { return m_NetType; }
-        }
-
-        /// <summary>
-        /// Gets internal IP end point. This value is null if failed to get network type.
-        /// </summary>
-        internal IPEndPoint PublicEndPoint
-        {
-            get { return m_pPublicEndPoint; }
-        }
-
-        #endregion
-    }
+    internal record StunResult(StunNetType NetType, IPEndPoint PublicEndPoint);
 
     /// <summary>
     /// Specifies UDP network type.
