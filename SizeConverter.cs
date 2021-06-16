@@ -12,9 +12,9 @@
     {
         internal static string ConvertToSizeString(long size)
         {
-            DataSizeUnit totalSizeUnit = SizeConverter.GetSuitableUnit(size);
-            return string.Format("{0:#0.##} {1}", SizeConverter.ConvertToSize(
-                size, totalSizeUnit), SizeConverter.GetUnitString(totalSizeUnit));
+            DataSizeUnit totalSizeUnit = GetSuitableUnit(size);
+            return string.Format("{0:#0.##} {1}", ConvertToSize(
+                size, totalSizeUnit), GetUnitString(totalSizeUnit));
         }
 
         internal static float ConvertToSize(long size, DataSizeUnit unit)
@@ -24,26 +24,25 @@
 
         static string GetUnitString(DataSizeUnit unit)
         {
-            switch (unit)
+            return unit switch
             {
-                case DataSizeUnit.Bytes: return "bytes";
-                case DataSizeUnit.KiloBytes: return "KB";
-                case DataSizeUnit.MegaBytes: return "MB";
-                case DataSizeUnit.GigaBytes: return "GB";
-            }
-            return string.Empty;
+                DataSizeUnit.Bytes => "bytes",
+                DataSizeUnit.KiloBytes => "KB",
+                DataSizeUnit.MegaBytes => "MB",
+                DataSizeUnit.GigaBytes => "GB",
+                _ => string.Empty,
+            };
         }
 
         static DataSizeUnit GetSuitableUnit(long size)
         {
-            if (size >= 0 && size < (long)DataSizeUnit.KiloBytes)
-                return DataSizeUnit.Bytes;
-            else if (size >= (long)DataSizeUnit.KiloBytes && size <= (long)DataSizeUnit.MegaBytes)
-                return DataSizeUnit.KiloBytes;
-            else if (size >= (long)DataSizeUnit.MegaBytes && size <= (long)DataSizeUnit.GigaBytes)
-                return DataSizeUnit.MegaBytes;
-            else
-                return DataSizeUnit.GigaBytes;
+            return size switch
+            {
+                >= 0 and < (long)DataSizeUnit.KiloBytes => DataSizeUnit.Bytes,
+                >= (long)DataSizeUnit.KiloBytes and <= (long)DataSizeUnit.MegaBytes => DataSizeUnit.KiloBytes,
+                >= (long)DataSizeUnit.MegaBytes and <= (long)DataSizeUnit.GigaBytes => DataSizeUnit.MegaBytes,
+                _ => DataSizeUnit.GigaBytes
+            };
         }
     }
 }
