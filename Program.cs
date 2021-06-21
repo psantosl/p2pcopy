@@ -1,5 +1,5 @@
 using System.IO;
-﻿using System;
+using System;
 using System.Net.Sockets;
 using System.Collections.Generic;
 using System.Net;
@@ -60,6 +60,7 @@ namespace p2pcopy
                     return;
 
                 Console.WriteLine("Tell this to your peer: {0}", p2pEndPoint.External.ToString());
+                TextCopy.ClipboardService.SetText(p2pEndPoint.External.ToString());
 
                 Console.WriteLine();
                 Console.WriteLine();
