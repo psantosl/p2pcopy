@@ -60,7 +60,6 @@ namespace p2pcopy
             m_ReasonText = reasonText;
         }
 
-
         #region Properties Implementation
 
         /// <summary>
@@ -187,14 +186,13 @@ namespace p2pcopy
             m_pTransactionID = Guid.NewGuid();
         }
 
-
         /// <summary>
         /// Parses STUN message from raw data packet.
         /// </summary>
         /// <param name="data">Raw STUN message.</param>
         internal void Parse(byte[] data)
         {
-            /* RFC 3489 11.1.             
+            /* RFC 3489 11.1.
                 All STUN messages consist of a 20 byte header:
 
                 0                   1                   2                   3
@@ -210,7 +208,7 @@ namespace p2pcopy
                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
                                                                                |
                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-              
+
                The message length is the count, in bytes, of the size of the
                message, not including the 20 byte header.
             */
@@ -277,7 +275,7 @@ namespace p2pcopy
         /// <returns>Returns raw STUN packet.</returns>
         internal byte[] ToByteData()
         {
-            /* RFC 3489 11.1.             
+            /* RFC 3489 11.1.
                 All STUN messages consist of a 20 byte header:
 
                 0                   1                   2                   3
@@ -293,7 +291,7 @@ namespace p2pcopy
                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
                                                                                |
                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-             
+
                The message length is the count, in bytes, of the size of the
                message, not including the 20 byte header.
 
@@ -474,7 +472,7 @@ namespace p2pcopy
                |         Type                  |            Length             |
                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
                |                             Value                             ....
-               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                            
+               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
             */
 
             // Type
@@ -601,7 +599,7 @@ namespace p2pcopy
         /// <param name="data">STUN message data.</param>
         /// <param name="offset">Offset in data.</param>
         /// <returns>Returns parsed IP end point.</returns>
-        IPEndPoint ParseEndPoint(byte[] data, ref int offset)
+        static IPEndPoint ParseEndPoint(byte[] data, ref int offset)
         {
             /*
                 It consists of an eight bit address family, and a sixteen bit
@@ -640,7 +638,7 @@ namespace p2pcopy
         /// <param name="endPoint">IP end point.</param>
         /// <param name="message">Buffer where to store.</param>
         /// <param name="offset">Offset in buffer.</param>
-        void StoreEndPoint(AttributeType type, IPEndPoint endPoint, byte[] message, ref int offset)
+        static void StoreEndPoint(AttributeType type, IPEndPoint endPoint, byte[] message, ref int offset)
         {
             /*
                 It consists of an eight bit address family, and a sixteen bit
@@ -652,7 +650,7 @@ namespace p2pcopy
                 |x x x x x x x x|    Family     |           Port                |
                 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
                 |                             Address                           |
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+             
+                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
             */
 
             // Header
@@ -738,7 +736,7 @@ namespace p2pcopy
         }
 
         /// <summary>
-        /// Gets or sets IP end point where STUN server will send response back to STUN client 
+        /// Gets or sets IP end point where STUN server will send response back to STUN client
         /// if the "change IP" and "change port" flags had been set in the ChangeRequest.
         /// </summary>
         internal IPEndPoint ChangedAddress
@@ -750,7 +748,7 @@ namespace p2pcopy
 
         /// <summary>
         /// Gets or sets user name. Value null means not specified.
-        /// </summary>          
+        /// </summary>
         internal string UserName
         {
             get { return m_UserName; }
@@ -780,7 +778,6 @@ namespace p2pcopy
             set { m_pErrorCode = value; }
         }
 
-
         /// <summary>
         /// Gets or sets IP endpoint from which IP end point STUN server got STUN client request.
         /// Value null means not specified.
@@ -801,7 +798,7 @@ namespace p2pcopy
     /// // Create new socket for STUN client.
     /// Socket socket = new Socket(AddressFamily.InterNetwork,SocketType.Dgram,ProtocolType.Udp);
     /// socket.Bind(new IPEndPoint(IPAddress.Any,0));
-    /// 
+    ///
     /// // Query STUN server
     /// STUN_Result result = STUN_Client.Query("stunserver.org",3478,socket);
     /// if(result.NetType != STUN_NetType.UdpBlocked){
@@ -813,7 +810,7 @@ namespace p2pcopy
     /// }
     /// </code>
     /// </example>
-    internal class StunClient
+    internal static class StunClient
     {
         #region static method Query
 
@@ -829,11 +826,11 @@ namespace p2pcopy
         {
             if (host == null)
             {
-                throw new ArgumentNullException("host");
+                throw new ArgumentNullException(nameof(host));
             }
             if (socket == null)
             {
-                throw new ArgumentNullException("socket");
+                throw new ArgumentNullException(nameof(socket));
             }
             if (port < 1)
             {
@@ -851,14 +848,14 @@ namespace p2pcopy
 
             /*
                 In test I, the client sends a STUN Binding Request to a server, without any flags set in the
-                CHANGE-REQUEST attribute, and without the RESPONSE-ADDRESS attribute. This causes the server 
+                CHANGE-REQUEST attribute, and without the RESPONSE-ADDRESS attribute. This causes the server
                 to send the response back to the address and port that the request came from.
-            
+
                 In test II, the client sends a Binding Request with both the "change IP" and "change port" flags
-                from the CHANGE-REQUEST attribute set.  
-              
+                from the CHANGE-REQUEST attribute set.
+
                 In test III, the client sends a Binding Request with only the "change port" flag set.
-                          
+
                                     +--------+
                                     |  Test  |
                                     |   I    |
@@ -905,8 +902,10 @@ namespace p2pcopy
             */
 
             // Test I
-            StunMessage test1 = new StunMessage();
-            test1.Type = StunMessageType.BindingRequest;
+            StunMessage test1 = new StunMessage
+            {
+                Type = StunMessageType.BindingRequest
+            };
             StunMessage test1response = DoTransaction(test1, socket, remoteEndPoint);
 
             // UDP blocked.
@@ -917,9 +916,11 @@ namespace p2pcopy
             else
             {
                 // Test II
-                StunMessage test2 = new StunMessage();
-                test2.Type = StunMessageType.BindingRequest;
-                test2.ChangeRequest = new StunChangeRequest(true, true);
+                StunMessage test2 = new StunMessage
+                {
+                    Type = StunMessageType.BindingRequest,
+                    ChangeRequest = new StunChangeRequest(true, true)
+                };
 
                 // No NAT.
                 if (socket.LocalEndPoint.Equals(test1response.MappedAddress))
@@ -948,13 +949,15 @@ namespace p2pcopy
                     else
                     {
                         /*
-                            If no response is received, it performs test I again, but this time, does so to 
+                            If no response is received, it performs test I again, but this time, does so to
                             the address and port from the CHANGED-ADDRESS attribute from the response to test I.
                         */
 
                         // Test I(II)
-                        StunMessage test12 = new StunMessage();
-                        test12.Type = StunMessageType.BindingRequest;
+                        StunMessage test12 = new StunMessage
+                        {
+                            Type = StunMessageType.BindingRequest
+                        };
 
                         StunMessage test12Response = DoTransaction(test12, socket, test1response.ChangedAddress);
                         if (test12Response == null)
@@ -971,9 +974,11 @@ namespace p2pcopy
                             else
                             {
                                 // Test III
-                                StunMessage test3 = new StunMessage();
-                                test3.Type = StunMessageType.BindingRequest;
-                                test3.ChangeRequest = new StunChangeRequest(false, true);
+                                StunMessage test3 = new StunMessage
+                                {
+                                    Type = StunMessageType.BindingRequest,
+                                    ChangeRequest = new StunChangeRequest(false, true)
+                                };
 
                                 StunMessage test3Response = DoTransaction(test3, socket, test1response.ChangedAddress);
                                 // Restricted
@@ -1044,43 +1049,7 @@ namespace p2pcopy
 
     }
 
-    internal class StunResult
-    {
-        StunNetType m_NetType = StunNetType.OpenInternet;
-        IPEndPoint m_pPublicEndPoint = null;
-
-        /// <summary>
-        /// Default constructor.
-        /// </summary>
-        /// <param name="netType">Specifies UDP network type.</param>
-        /// <param name="publicEndPoint">Public IP end point.</param>
-        internal StunResult(StunNetType netType, IPEndPoint publicEndPoint)
-        {
-            m_NetType = netType;
-            m_pPublicEndPoint = publicEndPoint;
-        }
-
-
-        #region Properties Implementation
-
-        /// <summary>
-        /// Gets UDP network type.
-        /// </summary>
-        internal StunNetType NetType
-        {
-            get { return m_NetType; }
-        }
-
-        /// <summary>
-        /// Gets internal IP end point. This value is null if failed to get network type.
-        /// </summary>
-        internal IPEndPoint PublicEndPoint
-        {
-            get { return m_pPublicEndPoint; }
-        }
-
-        #endregion
-    }
+    internal record StunResult(StunNetType NetType, IPEndPoint PublicEndPoint);
 
     /// <summary>
     /// Specifies UDP network type.
@@ -1103,32 +1072,32 @@ namespace p2pcopy
         SymmetricUdpFirewall,
 
         /// <summary>
-        /// A full cone NAT is one where all requests from the same internal IP address and port are 
-        /// mapped to the same external IP address and port. Furthermore, any external host can send 
+        /// A full cone NAT is one where all requests from the same internal IP address and port are
+        /// mapped to the same external IP address and port. Furthermore, any external host can send
         /// a packet to the internal host, by sending a packet to the mapped external address.
         /// </summary>
         FullCone,
 
         /// <summary>
-        /// A restricted cone NAT is one where all requests from the same internal IP address and 
+        /// A restricted cone NAT is one where all requests from the same internal IP address and
         /// port are mapped to the same external IP address and port. Unlike a full cone NAT, an external
-        /// host (with IP address X) can send a packet to the internal host only if the internal host 
+        /// host (with IP address X) can send a packet to the internal host only if the internal host
         /// had previously sent a packet to IP address X.
         /// </summary>
         RestrictedCone,
 
         /// <summary>
-        /// A port restricted cone NAT is like a restricted cone NAT, but the restriction 
+        /// A port restricted cone NAT is like a restricted cone NAT, but the restriction
         /// includes port numbers. Specifically, an external host can send a packet, with source IP
-        /// address X and source port P, to the internal host only if the internal host had previously 
+        /// address X and source port P, to the internal host only if the internal host had previously
         /// sent a packet to IP address X and port P.
         /// </summary>
         PortRestrictedCone,
 
         /// <summary>
-        /// A symmetric NAT is one where all requests from the same internal IP address and port, 
+        /// A symmetric NAT is one where all requests from the same internal IP address and port,
         /// to a specific destination IP address and port, are mapped to the same external IP address and
-        /// port.  If the same host sends a packet with the same source address and port, but to 
+        /// port.  If the same host sends a packet with the same source address and port, but to
         /// a different destination, a different mapping is used. Furthermore, only the external host that
         /// receives a packet can send a UDP packet back to the internal host.
         /// </summary>
