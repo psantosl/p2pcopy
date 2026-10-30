@@ -1,7 +1,9 @@
-bin
-obj
-.vs
-.vscode
-packages/
-.nuget/
+bin/
+obj/
 artifacts/
+.vs/
+.vscode/
+.idea/
+*.user
+*.swp
+TestResults/

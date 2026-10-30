@@ -1,55 +1,67 @@
 name: ci
-on: push
 
-env:
-  NUGET_URL: https://dist.nuget.org/win-x86-commandline/v5.4.0/nuget.exe
+on:
+  push:
+    branches: ['**']
+    tags-ignore: ['v*']
+  pull_request:
+
+permissions:
+  contents: read
+
 jobs:
-  build:
+  test:
+    name: test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-
     strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macOS-latest]
       fail-fast: false
-
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-    - name: Setup .NET 5
-      uses: actions/setup-dotnet@v1.7.2
-      with:
-        dotnet-version: 5.0.x
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
 
-    - name: Build
-      run: dotnet build -c Release
+      - name: Restore
+        run: dotnet restore
 
-  publish:
-    needs: build
+      - name: Build
+        run: dotnet build -c Release --no-restore
+
+      - name: Test
+        run: dotnet test -c Release --no-build --logger "trx" --results-directory TestResults
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.os }}
+          path: TestResults
+
+  aot-smoke:
+    name: native aot (linux-x64)
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        runtime-identifier: [win-x64, linux-x64, osx-x64, win-x86, win-arm, win-arm64, linux-musl-x64, linux-arm, linux-arm64]
-      fail-fast: false
-
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-    - name: Inject slug/short variables
-      uses: rlespinasse/github-slug-action@v3.x
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
 
-    - name: Setup .NET 5
-      uses: actions/setup-dotnet@v1.7.2
-      with:
-        dotnet-version: 5.0.x
+      - name: Install native toolchain
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends clang zlib1g-dev
 
-    - name: Publish ${{ matrix.runtime-identifier }}
-      run: dotnet publish -c Release -r ${{ matrix.runtime-identifier }} /p:PublishProfile=SingleFileSelfContainer -o artifacts/${{ matrix.runtime-identifier }}
+      - name: Publish
+        run: dotnet publish src/p2pcopy/p2pcopy.csproj -c Release -r linux-x64 -o artifacts/linux-x64
 
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: p2pcopy-${{ matrix.runtime-identifier }}-ci-${{ github.run_number }}
-        path: |
-          artifacts/${{ matrix.runtime-identifier }}
-        if-no-files-found: error
+      - name: Smoke test
+        run: |
+          ls -la artifacts/linux-x64
+          artifacts/linux-x64/p2pcopy --version
+          artifacts/linux-x64/p2pcopy --help
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p2pcopy-linux-x64-ci-${{ github.run_number }}
+          path: artifacts/linux-x64/p2pcopy

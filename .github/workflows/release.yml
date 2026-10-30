@@ -1,0 +1,136 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to stamp into the binaries (e.g. 2.0.0)
+        required: true
+        default: 2.0.0-dev
+
+permissions:
+  contents: write
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - id: v
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            echo "version=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    name: ${{ matrix.rid }}
+    needs: version
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - rid: linux-x64
+            os: ubuntu-latest
+          - rid: linux-arm64
+            os: ubuntu-24.04-arm
+          - rid: linux-musl-x64
+            os: ubuntu-latest
+            container: mcr.microsoft.com/dotnet/sdk:10.0-alpine
+          - rid: osx-x64
+            os: macos-latest
+          - rid: osx-arm64
+            os: macos-latest
+          - rid: win-x64
+            os: windows-latest
+          - rid: win-arm64
+            os: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install native toolchain (Debian/Ubuntu)
+        if: runner.os == 'Linux' && matrix.container == ''
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends clang zlib1g-dev
+
+      - name: Install native toolchain (Alpine)
+        if: matrix.container != ''
+        run: apk add --no-cache clang build-base zlib-dev zlib-static bash
+
+      - uses: actions/setup-dotnet@v4
+        if: matrix.container == ''
+        with:
+          global-json-file: global.json
+
+      - name: Publish
+        shell: bash
+        run: |
+          EXTRA=""
+          if [[ "${{ matrix.rid }}" == linux-musl-* ]]; then EXTRA="-p:StaticExecutable=true"; fi
+          dotnet publish src/p2pcopy/p2pcopy.csproj -c Release -r ${{ matrix.rid }} \
+            -p:Version=${{ needs.version.outputs.version }} $EXTRA \
+            -o artifacts/${{ matrix.rid }}
+
+      - name: Package
+        shell: bash
+        run: |
+          set -euo pipefail
+          V=${{ needs.version.outputs.version }}
+          RID=${{ matrix.rid }}
+          mkdir -p dist
+          cd artifacts/$RID
+          rm -f *.dbg *.pdb 2>/dev/null || true
+          rm -rf *.dSYM || true
+          cp ../../LICENSE ../../README.md .
+          if [[ "$RID" == win-* ]]; then
+            7z a -tzip "../../dist/p2pcopy-$V-$RID.zip" p2pcopy.exe LICENSE README.md >/dev/null
+          else
+            chmod +x p2pcopy
+            tar -czf "../../dist/p2pcopy-$V-$RID.tar.gz" p2pcopy LICENSE README.md
+          fi
+          ls -la ../../dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.rid }}
+          path: dist/*
+
+  release:
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: dist-*
+          merge-multiple: true
+          path: dist
+
+      - name: Checksums
+        run: |
+          cd dist
+          sha256sum * > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Create GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: p2pcopy ${{ needs.version.outputs.version }}
+          generate_release_notes: true
+          files: dist/*
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        with:
+          name: p2pcopy-${{ needs.version.outputs.version }}-all
+          path: dist/*

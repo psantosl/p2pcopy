@@ -1,130 +1,163 @@
 # p2pcopy
 
-Small command line application to do p2p file copy behind firewalls without a central server.
+Peer-to-peer file copy behind firewalls, with **no server in between**. Two people run
+`p2pcopy`, swap the code it prints over whatever chat they already have open, and the
+files flow directly from one machine to the other: encrypted, checksummed, resumable
+enough for real life, and fast.
 
-It uses the [UDT protocol](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) via [UdtSharp](https://github.com/PlasticSCM/UdtSharp) (a previous version of p2pcopy was using the Windows-only native library [UDT](http://udt.sourceforge.net) under the hood, but now it's cross-platform thanks to 100% fully-managed code).
+```
+ ____  ____  ____   ___  ___  _ __  _   _
+|  _ \|___ \|  _ \ / __|/ _ \| '_ \| | | |
+| |_) | __) | |_) | (__| (_) | |_) | |_| |
+| .__/|____/| .__/ \___|\___/| .__/ \__, |
+|_|         |_|              |_|    |___/
+```
 
-# Motivation
+One small native binary per platform. No account, no relay, no port forwarding, no
+installer.
 
-You are on a Slack/Skype/whatever session and need to send a 10GB virtual machine to a team mate. Uploading it to a central server doesn't seem to be a good option, so you would love to just start a P2P private connection between the two to send a file.
+## How it looks
 
-This is exactly what p2pcopy is all about.
+Alice sends:
 
-And I guess I'm just yet another one looking at the xkcd:File Transfer thing:
+```
+$ p2pcopy send ubuntu-vm.ova
+✔ Ready to send 1 file(s), 10.2 GB
+╭─ Candidate ─┬─ Address ─────────────────────┬─ Note ────────────────────╮
+│ LAN         │ 192.168.1.23:41222            │ same network only         │
+│ IPv6        │ [2a02:9b0:41c:1f3e::23]:41222 │ direct, no NAT            │
+│ Public      │ 83.44.120.9:41222             │ via STUN, cone NAT        │
+╰─────────────┴───────────────────────────────┴───────────────────────────╯
+╭─ Your code ──────────────────────────────────────────────────╮
+│ 044j86pzew6tbs7re7m3nw812jqwkg000819cdg                      │
+│ copied to your clipboard                                     │
+╰──────────────────────────────────────────────────────────────╯
+Send it to your peer. You look directly reachable, so they probably only need this.
+? Peer's code (or just wait if they only needed yours): █
+```
 
-![xdcd:File Transfer](http://imgs.xkcd.com/comics/file_transfer.png)
+Bob receives:
 
-Other (nicer) alternatives exist, web based (WebRTC in fact) (even serverless [like this one](http://blog.printf.net/articles/2013/05/17/webrtc-without-a-signaling-server)), but I wanted to go for a command line solution. Also, most p2p options need a central server to do the exchange of the public IPs before starting the "hole punching". I also wanted to avoid this, so the exchange is done manually, sharing the public IPs using your favourite messaging platform (like Slack).
+```
+$ p2pcopy receive
+…
+? Peer's code: 044j86pzew6tbs7re7m3nw812jqwkg000819cdg
+✔ Connected to alice-desktop at [2a02:…::23]:41222 via UDT over UDP  AES-256-GCM
+╭─ Incoming 1 file(s), 10.2 GB ────────────────────────────────╮
+│ /home/bob                                                    │
+│ └── ubuntu-vm.ova 10.2 GB                                    │
+╰──────────────────────────────────────────────────────────────╯
+Accept? [y/n] (y): y
+Receiving 1 file(s) ━━━━━━━━━━━━━━━━━━━━━━━━━━━╸━━━━━━━━ 72%  7.3/10.2 GB  112 MB/s  00:26
+```
 
-It is built on top of UDT, the famous library to speed up data transfer on high bandwidth, high latency networks. It includes a "rendezvous" mode to perform UDP hole punching, and that's what I use.
+Whoever presses Enter second triggers the connection; there is nothing to time.
 
-# How to use it
+## Install
 
-The two peers will need a copy of p2p.exe, then one will act as "sender" and the other as "receiver" (in fact, using the commands with these names).
+Grab the binary for your platform from the
+[releases page](https://github.com/psantosl/p2pcopy/releases), unpack it and put
+`p2pcopy` somewhere on your `PATH`. Linux (x64, arm64, static musl), macOS (Intel and
+Apple silicon) and Windows (x64, arm64) are built on every release.
 
-## Sender
-
-I'm specifying a local port, which is not mandatory, you can skip the --localport.
+Or build it yourself with the .NET 10 SDK:
 
 ```bash
->p2pcopy.exe sender --localport 4300 --file 03183u.tif
-Using local port: 4300
-Your firewall is FullCone
-Tell this to your peer: 223.154.44.121:4300
-
-
-Enter the ip:port of your peer: 188.44.136.7:21300
-Your firewall is FullCone
-[17:51:55] - Waiting 5 sec to sync with other peer
-Your firewall is FullCone
-0 - Trying to connect to 188.44.136.7:21300.  Connected successfully to 188.44.136.7:21300
-\[##################------------------------------------------]    54.5 MB / 181.64 MB.  569.47 KB/s
+dotnet publish src/p2pcopy -c Release -r linux-x64 -o out
 ```
 
-## Receiver
+## Usage
+
+```
+p2pcopy send <paths>...        send files and/or directories
+p2pcopy receive [--out DIR]    receive into DIR (default: current directory)
+
+  -c, --code <code>   the other side's code (skips the prompt)
+  -p, --port <port>   local UDP/TCP port (default: random)
+  -y, --yes           receive: accept without asking, overwrite existing files
+  -o, --out <dir>     receive: destination directory
+      --stun <host[:port]>  STUN server to use (repeatable; also P2PCOPY_STUN env var)
+      --timeout <s>   how long to keep trying to connect (default 120)
+      --plain         no colours, no live progress (automatic when piped)
+      --json          one JSON event per line, prompts answered on stdin
+      --no-tcp        UDP hole punching only
+      --ipv4          do not use IPv6
+      --no-clipboard  do not copy the code to the clipboard
+  -v, --verbose       show candidates, probes and transport details
+```
+
+Exit codes: `0` success, `1` usage, `2` file problem, `3` could not connect,
+`4` transfer failed or declined, `130` cancelled.
+
+Scripting example, no prompts on either side:
 
 ```bash
->p2pcopy.exe receiver --localport 21300
-Using local port: 21300
-Your firewall is FullCone
-Tell this to your peer: 188.44.136.7:21300
-
-
-Enter the ip:port of your peer: 223.154.44.121:4300
-Your firewall is FullCone
-[5:51:56 PM] - Waiting 4 sec to sync with other peer
-Your firewall is FullCone
-0 - Trying to connect to 223.154.44.121:4300.  Connected successfully to 223.154.44.121:4300
--[##########################################---------------]      86 MB / 181.64 MB.     688 KB/s
-
+p2pcopy receive --out ~/Downloads --yes --json --code 044j86…
 ```
-
-## Potential connection problems
-
-Sometimes the two peers try to punch a hole on their routers but they don't succeed. If that happens, simply retry and eventually (normally works well) it will work.
-
-A sample failed session looks as follows:
 
 ```bash
->p2pcopy.exe sender --localport 60300 --file 03183u.tif
-Using local port: 60300
-Your firewall is FullCone
-Tell this to your peer: 2xx.2xx.84.121:60300
-
-
-Enter the ip:port of your peer: 188.14.136.87:21300
-Your firewall is FullCone
-[17:47:50] - Waiting 10 sec to sync with other peer
-Your firewall is FullCone
-0 - Trying to connect to 188.14.136.87:21300.  Error connecting to 188.14.136.87:21300. Connection setup failure: connection time out. UDT Error Code: 1001
-[17:48:30] - Waiting 10 sec to sync with other peer
-Your firewall is FullCone
-1 - Trying to connect to 188.14.136.87:21300.  Error connecting to 188.14.136.87:21300. Connection setup failure: connection time out. UDT Error Code: 1001
+p2pcopy send backup.tar.zst --plain --code 044bbae…
 ```
 
-It is a pain when it happens, but... well, this is p2p like it is 1995 :P
+## One code or two?
 
-Once you get an open port that works, you can reuse it both on sender and receiver by using the --localport option:
+The code carries every address you might be reachable at (LAN, public IPv4 learned via
+STUN, global IPv6), what kind of NAT you are behind, and a random secret.
 
-`p2pcopy.exe sender --localport 60300 --file 03183u.tif`
+- If the person whose code was pasted is **directly reachable** (public IPv6, no NAT,
+  or a full-cone NAT), the other side connects and nothing else is needed.
+- If they are behind a **restricted or symmetric NAT**, their router only lets packets
+  in from addresses they have already sent to, so they need your code too. p2pcopy tells
+  you when that is the case and prints the code to send back; the first side is already
+  sitting at a prompt waiting for it.
 
-# How does it work
+Home connections with IPv6 or UPnP usually need one paste. Office networks usually need
+two. Either way nobody types an IP address.
 
-The implementation is extremely simple:
+## How it works
 
-- Both peers connect to an external public STUN server to get their public IPs and ports. This is the only connection to an external server, and it doesn't require you to have any account or login or anything.
-- Then each peer reuses the UDP socket used for STUN to create a UDT socket.
-- On both sides, each peer tries to connect (socket.connect) with the other one using the UDT ''rendezvous'' mode:
+1. **Probe.** Bind one UDP port, list the local addresses, and ask a few STUN servers
+   (one RFC 8489 binding request each, in parallel) what the public address is. Two
+   answers that disagree on the port mean a symmetric NAT.
+2. **Pair.** Encode role, NAT class, secret and candidates as a Crockford base32 string
+   with a checksum. Paste it to the peer.
+3. **Punch.** Send small authenticated probes to every candidate of the peer from the
+   same UDP socket, four times a second, for up to two minutes. The first pair of
+   addresses that works in both directions wins; the sender tells the receiver which.
+4. **Connect.** Hand that UDP socket to [UDT](https://udt.sourceforge.io) in rendezvous
+   mode (a pure C# port, vendored in `src/p2pcopy/Udt`). In parallel, TCP tries too:
+   listening on the same port number and connecting to the peer from it (simultaneous
+   open), which also covers the case where UDP is blocked but a LAN or IPv6 route exists.
+5. **Encrypt.** Both sides derive a session key with HKDF from the pairing secret(s) and
+   fresh nonces, then speak length-prefixed AES-256-GCM (or ChaCha20-Poly1305) frames.
+   No application level acks: the transport does flow control, the receiver verifies a
+   SHA-256 per file.
 
-```csharp
-                    client = new Udt.Socket(AddressFamily.InterNetwork, SocketType.Stream);
+There is no server anywhere in that list, by design. The only outside parties ever
+contacted are public STUN servers, and they only ever see a 20 byte question.
 
-                    client.SetSocketOption(Udt.SocketOptionName.Rendezvous, true);
+## Limits and honest caveats
 
-                    client.Bind(socket);
+- Two symmetric NATs cannot be punched. A phone hotspot on one side usually fixes it.
+- Resume of an interrupted transfer, UPnP/NAT-PMP port mapping and a stdin/stdout pipe
+  mode are not implemented yet.
+- UDT is CPU bound in managed code: expect hundreds of megabits, not tens of gigabits.
 
-                    Console.Write("\r{0} - Trying to connect to {1}:{2}.  ",
-                        retry++, remoteAddr, remotePort);
+## Development
 
-                    client.Connect(remoteAddr, remotePort);
-
-                    Console.WriteLine("Connected successfully to {0}:{1}",
-                        remoteAddr, remotePort);
+```bash
+dotnet test
 ```
 
-Yes, each socket simply does ''connect'' and nobody is doing ''listen'' or ''accept'' but it works. This is how hole punching goes.
+```bash
+dotnet publish src/p2pcopy -c Release -r <rid> -o out
+```
 
-- Once the connection is established, regular socket stuff happens, and the file is sent in chunks to the receiver.
+CI builds and tests on Linux, macOS and Windows on every push. Pushing a `v*` tag runs
+the release workflow, which publishes Native AOT binaries for seven platforms and
+attaches them, with a `SHA256SUMS` file, to a GitHub release.
 
-## Interesting point: use internet time to synchronize
+## License
 
-There is one interesting point to highlight: when you exchange public IPs using a central server, synchronization is rather easy because each peer receives the IP of the other side, then tries to connect, and more likely the connection attempt happens at the same time.
-
-But here we do not use a central server, the exchange is done manually by the user (to avoid any sort of central 'directory service').
-
-So, in initial versions, users had to be very careful to "try to start at the same time" (basically type the IP:port of the other side and hit ENTER almost at the same time), which was painful.
-
-The solution (that works pretty well on most cases) is as follows:
-
-- Each peer gets the internet time via NTP.
-- Then they decide to "start" on second 0, 10, 20, 30... of every minute, so they work synchronized even when the users don't hit ENTER at the same time (which, as I said, basically rendered it unusable).
+MIT. The vendored UdtSharp code is MIT as well, copyright PlasticSCM; see
+`src/p2pcopy/Udt/LICENSE`.

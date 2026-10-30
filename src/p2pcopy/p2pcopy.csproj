@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>p2pcopy</AssemblyName>
+    <RootNamespace>P2pCopy</RootNamespace>
+    <Version>2.0.0</Version>
+    <Authors>Pablo Santos and contributors</Authors>
+    <Description>Peer-to-peer file copy behind firewalls, with no central server.</Description>
+    <PackageProjectUrl>https://github.com/psantosl/p2pcopy</PackageProjectUrl>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RollForward>LatestMajor</RollForward>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+
+    <!-- Native AOT, size optimized. -->
+    <PublishAot>true</PublishAot>
+    <OptimizationPreference>Size</OptimizationPreference>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
+    <EventSourceSupport>false</EventSourceSupport>
+    <StripSymbols>true</StripSymbols>
+    <IlcGenerateStackTraceData>true</IlcGenerateStackTraceData>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Spectre.Console" Version="0.57.2" />
+    <PackageReference Include="System.CommandLine" Version="2.0.14" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="p2pcopy.Tests" />
+  </ItemGroup>
+
+</Project>
