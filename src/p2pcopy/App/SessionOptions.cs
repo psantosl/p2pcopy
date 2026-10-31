@@ -16,7 +16,7 @@ internal sealed class SessionOptions
     public bool Ipv4Only { get; init; }
     public bool Verbose { get; init; }
     public IReadOnlyList<StunServer> StunServers { get; init; } = StunServer.Defaults;
-    public TimeSpan ConnectTimeout { get; init; } = TimeSpan.FromSeconds(120);
+    public TimeSpan ConnectTimeout { get; init; } = TimeSpan.FromSeconds(600);
 }
 
 internal static class ExitCodes

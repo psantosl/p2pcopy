@@ -14,7 +14,7 @@ internal static class Program
         var codeOption = new Option<string?>("--code", "-c") { Description = "The other side's pairing code. Skips the prompt.", Recursive = true };
         var portOption = new Option<int>("--port", "-p") { Description = "Local UDP/TCP port to use. Default: random.", Recursive = true };
         var stunOption = new Option<string[]>("--stun") { Description = "STUN server(s) as host[:port]. Repeat to add more.", Recursive = true };
-        var timeoutOption = new Option<int>("--timeout") { Description = "Seconds to keep trying to reach the peer.", DefaultValueFactory = _ => 120, Recursive = true };
+        var timeoutOption = new Option<int>("--timeout") { Description = "Seconds to keep trying to reach the peer.", DefaultValueFactory = _ => 600, Recursive = true };
         var plainOption = new Option<bool>("--plain") { Description = "Plain text output, no colours or live progress.", Recursive = true };
         var jsonOption = new Option<bool>("--json") { Description = "Machine readable output: one JSON object per line.", Recursive = true };
         var verboseOption = new Option<bool>("--verbose", "-v") { Description = "Show candidates, probes and transport details.", Recursive = true };

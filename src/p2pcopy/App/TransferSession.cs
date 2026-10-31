@@ -110,6 +110,7 @@ internal sealed class TransferSession
 
         using var racer = new ConnectionRacer(hubs, port, pairing, _opts.Role, enableTcp: !_opts.NoTcp, _log);
         using var connectCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        var deadline = DateTime.Now + _opts.ConnectTimeout;
         var connectTask = racer.RunAsync(_opts.ConnectTimeout, connectCts.Token);
         var keepalive = v4 == null ? Task.CompletedTask : KeepAliveAsync(v4, racer, connectTask, ct);
 
@@ -124,7 +125,7 @@ internal sealed class TransferSession
         }
         else
         {
-            await PromptForPeerCodeAsync(pairing, connectTask, probe, ct).ConfigureAwait(false);
+            await PromptForPeerCodeAsync(pairing, connectTask, probe, deadline, ct).ConfigureAwait(false);
         }
 
         var hint = pairing.Peer == null ? Task.CompletedTask : SecondCodeHintAsync(pairing.Peer, encoded, connectTask, ct);
@@ -292,14 +293,16 @@ internal sealed class TransferSession
         return true;
     }
 
-    private async Task PromptForPeerCodeAsync(PairingState pairing, Task<PeerConnection> connectTask, ProbeResult probe, CancellationToken ct)
+    private async Task PromptForPeerCodeAsync(PairingState pairing, Task<PeerConnection> connectTask, ProbeResult probe, DateTime deadline, CancellationToken ct)
     {
         using var promptCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         _ = connectTask.ContinueWith(_ => promptCts.Cancel(), TaskScheduler.Default);
 
+        // Show when we give up, so nobody wonders whether the prompt is still alive.
+        var until = deadline.ToString("HH:mm");
         var prompt = probe.LikelyReachable
-            ? "Peer's code (or just wait if they only needed yours):"
-            : "Peer's code:";
+            ? $"Peer's code (or just wait if they only needed yours, until {until}):"
+            : $"Peer's code (until {until}):";
 
         while (pairing.Peer == null && !connectTask.IsCompleted)
         {

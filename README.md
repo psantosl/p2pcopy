@@ -72,7 +72,7 @@ v2.0.0  ·  peer-to-peer file copy, no server in between
 │ copied to your clipboard                                    │
 ╰─────────────────────────────────────────────────────────────╯
 Send it to your peer. You look directly reachable, so they probably only need this.
-? Peer's code (or just wait if they only needed yours): █
+? Peer's code (or just wait if they only needed yours, until 18:42): █
 ```
 
 Alice pastes the code into the chat and waits.
@@ -87,7 +87,7 @@ $ p2pcopy receive
 │ copied to your clipboard                                    │
 ╰─────────────────────────────────────────────────────────────╯
 Send it to your peer and paste theirs below.
-? Peer's code: 044j86pzew6tbs7re7m3nw812jqwkg000819cdg
+? Peer's code (until 18:43): 044j86pzew6tbs7re7m3nw812jqwkg000819cdg
 ✔ Connected to alice-desktop at [2a02:9b0:41c:1f3e::23]:41222 via UDT over UDP  AES-256-GCM
 ╭─ Incoming 1 file(s), 10.2 GB ───────────────────────────────╮
 │ /home/bob                                                   │
@@ -99,11 +99,11 @@ Receiving 1 file(s) ━━━━━━━━━━━━━━━━━━━╸
 
 Bob pastes Alice's code, and that was it: Alice's terminal lights up with "Connected", the progress bar runs on both sides, and at the end both see a summary with the SHA-256 verification.
 
-Whoever presses Enter second triggers the connection. There is nothing to time, and the first one can wait a couple of minutes at the prompt without anything expiring.
+Whoever presses Enter second triggers the connection. There is nothing to time, and the first one can wait up to ten minutes at the prompt (the prompt shows until when) without anything expiring.
 
 ## Potential connection problems
 
-Some NATs are just hostile. If after two minutes nothing connected, p2pcopy explains what it saw on both sides instead of failing silently:
+Some NATs are just hostile. If after ten minutes nothing connected, p2pcopy explains what it saw on both sides instead of failing silently:
 
 ```
 ✘ Could not reach your peer.
@@ -144,7 +144,7 @@ p2pcopy receive [--out DIR]    receive into DIR (default: current directory)
   -y, --yes           receive: accept without asking, overwrite existing files
   -o, --out <dir>     receive: destination directory
       --stun <host[:port]>  STUN server to use (repeatable; also P2PCOPY_STUN env var)
-      --timeout <s>   how long to keep trying to connect (default 120)
+      --timeout <s>   how long to keep trying to connect (default 600)
       --plain         no colours, no live progress
       --json          one JSON event per line
       --no-tcp        UDP hole punching only
@@ -180,7 +180,7 @@ The first versions had a trick I was quite fond of: since there is no server to 
 
 It worked, but it also meant waiting up to ten seconds per attempt, a hard dependency on NTP, and failed attempts that took half a minute to notice.
 
-It turns out the synchronization was only needed because UDT's rendezvous connect has a short timeout. Punching with our own probes first removes the problem: the first peer just keeps sending probes (and a STUN keepalive every 20 seconds so its NAT mapping stays open) until the second peer shows up, for up to two minutes. The NAT mapping stays alive while packets flow, so there is no window to hit. Whoever is second triggers the connection, and UDT only starts once both sides already know the path works.
+It turns out the synchronization was only needed because UDT's rendezvous connect has a short timeout. Punching with our own probes first removes the problem: the first peer just keeps sending probes (and a STUN keepalive every 20 seconds so its NAT mapping stays open) until the second peer shows up, for up to ten minutes. The NAT mapping stays alive while packets flow, so there is no window to hit. Whoever is second triggers the connection, and UDT only starts once both sides already know the path works.
 
 ## Interesting point: a bug in the UDT port
 
