@@ -18,9 +18,35 @@ Other (nicer) alternatives exist: web based (WebRTC), or tools like croc, magic-
 
 Ten years after the first version the idea still holds, so this is the same tool rebuilt with everything that was learned in between.
 
-# How to use it
+# How to install
 
-Download the binary for your platform from the [releases page](https://github.com/psantosl/p2pcopy/releases), unpack it, done. There is nothing to install: it is one file, 6 MB or so, no runtime needed.
+One native executable per platform, about 6 MB, no runtime to install. Pick whichever is easiest:
+
+**Linux and macOS**
+
+```
+curl -fsSL https://raw.githubusercontent.com/psantosl/p2pcopy/master/install.sh | sh
+```
+
+It detects your OS and CPU, downloads the matching build from the latest release, checks its SHA-256 and puts `p2pcopy` in `/usr/local/bin` (or `~/.local/bin` if that is not writable). Set `P2PCOPY_VERSION=2.0.0` to pin a version or `P2PCOPY_INSTALL_DIR` to choose the directory. Because the file never goes through a browser it does not get macOS's quarantine flag, so there is no "unidentified developer" dialog to fight.
+
+**Windows** (PowerShell)
+
+```
+irm https://raw.githubusercontent.com/psantosl/p2pcopy/master/install.ps1 | iex
+```
+
+Same idea: downloads, verifies, installs to `%LOCALAPPDATA%\Programs\p2pcopy` and adds it to your user `PATH`.
+
+**Homebrew and Scoop**
+
+Every release also ships a ready-made Homebrew formula (`p2pcopy.rb`) and Scoop manifest (`p2pcopy.json`) among its assets, generated from `packaging/`. Once they live in a tap and a bucket, installing becomes `brew install psantosl/tap/p2pcopy` and `scoop install p2pcopy`.
+
+**By hand**
+
+Grab the archive for your platform from the [releases page](https://github.com/psantosl/p2pcopy/releases), unpack it anywhere on your `PATH`. On macOS, if you downloaded it with a browser, run `xattr -d com.apple.quarantine p2pcopy` once.
+
+# How to use it
 
 The two peers run p2pcopy, one as `send` and the other as `receive`. Each one prints a **code**. You paste your code to your peer, your peer pastes theirs to you (often only one of the two is needed), and the transfer starts.
 

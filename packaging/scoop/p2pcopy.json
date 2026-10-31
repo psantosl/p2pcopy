@@ -1,0 +1,31 @@
+{
+  "version": "@VERSION@",
+  "description": "Peer-to-peer file copy behind firewalls, with no server in between",
+  "homepage": "https://github.com/psantosl/p2pcopy",
+  "license": "MIT",
+  "architecture": {
+    "64bit": {
+      "url": "https://github.com/psantosl/p2pcopy/releases/download/v@VERSION@/p2pcopy-@VERSION@-win-x64.zip",
+      "hash": "@SHA_WIN_X64@"
+    },
+    "arm64": {
+      "url": "https://github.com/psantosl/p2pcopy/releases/download/v@VERSION@/p2pcopy-@VERSION@-win-arm64.zip",
+      "hash": "@SHA_WIN_ARM64@"
+    }
+  },
+  "bin": "p2pcopy.exe",
+  "checkver": "github",
+  "autoupdate": {
+    "architecture": {
+      "64bit": {
+        "url": "https://github.com/psantosl/p2pcopy/releases/download/v$version/p2pcopy-$version-win-x64.zip"
+      },
+      "arm64": {
+        "url": "https://github.com/psantosl/p2pcopy/releases/download/v$version/p2pcopy-$version-win-arm64.zip"
+      }
+    },
+    "hash": {
+      "url": "https://github.com/psantosl/p2pcopy/releases/download/v$version/SHA256SUMS"
+    }
+  }
+}
