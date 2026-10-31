@@ -74,6 +74,10 @@ internal sealed class SpectreUi : IUserInterface
         _console.Write(panel);
         if (peerOnlyNeedsThis)
             _console.MarkupLine("[grey]Send it to your peer. You look directly reachable, so they probably only need this.[/]");
+        else if (code.Nat == NatKind.Cone)
+            _console.MarkupLine("[grey]Send it to your peer and paste theirs below. Your router keeps a stable port mapping, so hole punching should work once both codes are exchanged.[/]");
+        else if (code.Nat == NatKind.Symmetric)
+            _console.MarkupLine("[grey]Send it to your peer and paste theirs below. Your router is a symmetric NAT: connecting will depend on your peer's side being friendlier.[/]");
         else
             _console.MarkupLine("[grey]Send it to your peer and paste theirs below.[/]");
         _console.WriteLine();

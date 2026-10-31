@@ -14,10 +14,11 @@ internal sealed class ProbeResult
     public bool HasIpv6 => Candidates.Any(c => c.Kind == CandidateKind.Ipv6);
 
     /// <summary>
-    /// True when a peer that only has our code has a real chance of reaching us
-    /// without us ever learning their address first.
+    /// True when a peer that only has our code has a real chance of reaching us without
+    /// us ever learning their address first. A cone NAT does not count: STUN cannot tell
+    /// full cone from port-restricted cone, and most home routers are the latter.
     /// </summary>
-    public bool LikelyReachable => Nat == NatKind.None || HasIpv6 || Nat == NatKind.Cone;
+    public bool LikelyReachable => Nat == NatKind.None || HasIpv6;
 }
 
 /// <summary>Gathers local candidates and asks STUN servers what the world sees.</summary>

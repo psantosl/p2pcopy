@@ -43,8 +43,11 @@ internal sealed class PairingCode
 
     public bool HasIpv6 => Candidates.Any(c => c.Kind == CandidateKind.Ipv6);
 
-    /// <summary>Whether a peer holding only this code has a fair chance of connecting.</summary>
-    public bool LikelyReachable => Nat == NatKind.None || HasIpv6 || Nat == NatKind.Cone;
+    /// <summary>
+    /// Whether a peer holding only this code has a fair chance of connecting. Cone NATs are
+    /// excluded on purpose: most of them are port-restricted and need our probes first.
+    /// </summary>
+    public bool LikelyReachable => Nat == NatKind.None || HasIpv6;
 
     /// <summary>Short, stable identifier of the secret for logs and probe packets.</summary>
     public static uint SecretId(ReadOnlySpan<byte> secret)

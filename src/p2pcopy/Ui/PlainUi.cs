@@ -42,7 +42,9 @@ internal sealed class PlainUi : IUserInterface
         _out.WriteLine("Your code: " + encoded);
         _out.WriteLine(peerOnlyNeedsThis
             ? "Send it to your peer. You look directly reachable, so they probably only need this."
-            : "Send it to your peer and paste theirs when asked.");
+            : code.Nat == NatKind.Cone
+                ? "Send it to your peer and paste theirs when asked. Your router keeps a stable port mapping, so hole punching should work once both codes are exchanged."
+                : "Send it to your peer and paste theirs when asked.");
         _out.WriteLine();
     }
 
