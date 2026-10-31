@@ -2,7 +2,7 @@
 
 Small command line application to do p2p file copy behind firewalls without a central server.
 
-It uses the [UDT protocol](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) via [UdtSharp](https://github.com/PlasticSCM/UdtSharp) (100% managed code, now vendored into this repo), does UDP hole punching to get through NATs, and ships as a single small native executable for Linux, macOS and Windows thanks to .NET 10 and Native AOT. Everything that goes over the wire is encrypted and checksummed.
+It uses the [UDT protocol](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) via a pure C# port of UDT (vendored in this repo, no native code), does UDP hole punching to get through NATs, and ships as a single small native executable for Linux, macOS and Windows thanks to .NET 10 and Native AOT. Everything that goes over the wire is encrypted and checksummed.
 
 # Motivation
 
@@ -22,7 +22,7 @@ Ten years after the first version the idea still holds, so this is the same tool
 
 Download the binary for your platform from the [releases page](https://github.com/psantosl/p2pcopy/releases), unpack it, done. There is nothing to install: it is one file, 6 MB or so, no runtime needed.
 
-The two peers run p2pcopy, one as `send` and the other as `receive`. Each one prints a **code**. You paste your code to your peer, your peer pastes theirs to you (often only one of the two is needed, see below), and the transfer starts.
+The two peers run p2pcopy, one as `send` and the other as `receive`. Each one prints a **code**. You paste your code to your peer, your peer pastes theirs to you (often only one of the two is needed), and the transfer starts.
 
 ## Sender
 
@@ -77,20 +77,6 @@ Receiving 1 file(s) ━━━━━━━━━━━━━━━━━━━╸
 Bob pastes Alice's code, and that was it: Alice's terminal lights up with "Connected", the progress bar runs on both sides, and at the end both see a summary with the SHA-256 verification.
 
 Whoever presses Enter second triggers the connection. There is nothing to time, and the first one can wait a couple of minutes at the prompt without anything expiring.
-
-## One code or two?
-
-The code carries every address you might be reachable at (LAN, public IPv4 as seen by STUN, global IPv6), what kind of NAT you are behind, and a random secret.
-
-- If the person whose code was pasted is **directly reachable** (public IPv6, no NAT, or a full cone NAT) the other side connects and nothing else is needed. That is the example above.
-- If they are behind a **restricted or symmetric NAT**, their router only lets packets in from addresses they have already sent to, so they need your code too. p2pcopy notices and tells you:
-
-```
-! Still trying. If it does not connect soon, your peer probably needs your code too.
-  Ask your peer to paste this code on their side:  044bbaep2cbdazz98xayjfg12jr2sg00081dkbr
-```
-
-The other side is already sitting at the "Peer's code" prompt, so they paste it and the connection comes up. Home connections with IPv6 usually need one paste; office networks usually need two. Either way nobody types an IP address.
 
 ## Potential connection problems
 
@@ -173,7 +159,7 @@ It worked, but it also meant waiting up to ten seconds per attempt, a hard depen
 
 It turns out the synchronization was only needed because UDT's rendezvous connect has a short timeout. Punching with our own probes first removes the problem: the first peer just keeps sending probes (and a STUN keepalive every 20 seconds so its NAT mapping stays open) until the second peer shows up, for up to two minutes. The NAT mapping stays alive while packets flow, so there is no window to hit. Whoever is second triggers the connection, and UDT only starts once both sides already know the path works.
 
-## Interesting point: the UdtSharp bug
+## Interesting point: a bug in the UDT port
 
 While testing 40 MB transfers through the new code the receiver started getting garbage, but only when the receiving side was slower than the sender. UDT alone on loopback was fine, which made it look like my bug.
 
@@ -204,4 +190,4 @@ CI builds and tests on Linux, macOS and Windows on every push, and does a Native
 
 # License
 
-MIT. The vendored UdtSharp code is MIT as well, copyright PlasticSCM; see `src/p2pcopy/Udt/LICENSE`.
+MIT. The vendored UDT port is MIT as well; its notice is kept in `src/p2pcopy/Udt/LICENSE`.
