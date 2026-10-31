@@ -38,10 +38,6 @@ irm https://raw.githubusercontent.com/psantosl/p2pcopy/master/install.ps1 | iex
 
 Same idea: downloads, verifies, installs to `%LOCALAPPDATA%\Programs\p2pcopy` and adds it to your user `PATH`.
 
-**Homebrew and Scoop**
-
-Every release also ships a ready-made Homebrew formula (`p2pcopy.rb`) and Scoop manifest (`p2pcopy.json`) among its assets, generated from `packaging/`. Once they live in a tap and a bucket, installing becomes `brew install psantosl/tap/p2pcopy` and `scoop install p2pcopy`.
-
 **By hand**
 
 Grab the archive for your platform from the [releases page](https://github.com/psantosl/p2pcopy/releases), unpack it anywhere on your `PATH`. On macOS, if you downloaded it with a browser, run `xattr -d com.apple.quarantine p2pcopy` once.
