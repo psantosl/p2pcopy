@@ -6,9 +6,13 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Version to stamp into the binaries (e.g. 2.0.0)
+        description: Version to stamp into the binaries (e.g. 2.0.0 or 2.0.0-beta.1)
         required: true
         default: 2.0.0-dev
+      create_release:
+        description: Also create the tag and a GitHub release from this branch
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -127,9 +131,11 @@ jobs:
         run: packaging/render.sh "${{ needs.version.outputs.version }}" dist/SHA256SUMS dist
 
       - name: Create GitHub release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == 'true'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ needs.version.outputs.version }}
+          target_commitish: ${{ github.sha }}
           name: p2pcopy ${{ needs.version.outputs.version }}
           generate_release_notes: true
           prerelease: ${{ contains(needs.version.outputs.version, '-') }}
