@@ -51,7 +51,7 @@ archive="p2pcopy-$VERSION-$rid.tar.gz"
 tmp=$(mktemp -d 2>/dev/null || mktemp -d -t p2pcopy)
 trap 'rm -rf "$tmp"' EXIT INT TERM
 
-say "Downloading p2pcopy $VERSION for $rid…"
+say "Downloading p2pcopy $VERSION for ${rid}…"
 curl -fsSL -o "$tmp/$archive" "$base/$archive" || die "download failed: $base/$archive"
 curl -fsSL -o "$tmp/SHA256SUMS" "$base/SHA256SUMS" || die "download failed: $base/SHA256SUMS"
 

@@ -188,13 +188,13 @@ internal sealed class SpectreUi : IUserInterface
 
         return await _console.Progress()
             .AutoClear(false)
-            .HideCompleted(true)
+            .HideCompleted(false)
             .Columns(columns)
             .StartAsync(async ctx =>
             {
                 var verb = role == PeerRole.Sender ? "Sending" : "Receiving";
                 var total = ctx.AddTask($"[bold]{verb} {manifest.FileCount} file(s)[/]", maxValue: Math.Max(1, manifest.TotalBytes));
-                var reporter = new Reporter(ctx, total);
+                var reporter = new Reporter(ctx, total, role);
                 try
                 {
                     return await work(reporter).ConfigureAwait(false);
@@ -210,14 +210,17 @@ internal sealed class SpectreUi : IUserInterface
     {
         private readonly ProgressContext _ctx;
         private readonly ProgressTask _total;
+        private readonly PeerRole _role;
         private readonly object _gate = new();
         private ProgressTask? _file;
         private int _fileIndex = -1;
+        private bool _waiting;
 
-        public Reporter(ProgressContext ctx, ProgressTask total)
+        public Reporter(ProgressContext ctx, ProgressTask total, PeerRole role)
         {
             _ctx = ctx;
             _total = total;
+            _role = role;
         }
 
         public void Report(TransferProgress p)
@@ -227,20 +230,34 @@ internal sealed class SpectreUi : IUserInterface
                 _total.Value = Math.Min(p.BytesDone, _total.MaxValue);
                 if (p.FileIndex != _fileIndex)
                 {
-                    _file?.StopTask();
+                    // One reusable row for the current file, so finished files don't pile up
+                    // and the bars stay on screen when the transfer ends.
                     _fileIndex = p.FileIndex;
                     var name = p.CurrentFile;
                     if (name.Length > 40) name = "…" + name.Substring(name.Length - 39);
-                    _file = _ctx.AddTask($"[grey]{p.FileIndex}/{p.FileCount}[/] {E(name)}", maxValue: Math.Max(1, p.CurrentFileSize));
+                    var description = $"[grey]{p.FileIndex}/{p.FileCount}[/] {E(name)}";
+                    if (_file == null)
+                    {
+                        _file = _ctx.AddTask(description, maxValue: Math.Max(1, p.CurrentFileSize));
+                    }
+                    else
+                    {
+                        _file.Description = description;
+                        _file.MaxValue = Math.Max(1, p.CurrentFileSize);
+                        _file.Value = 0;
+                    }
                 }
                 if (_file != null)
                 {
                     _file.Value = p.CurrentFileSize == 0 ? _file.MaxValue : Math.Min(p.CurrentFileBytes, _file.MaxValue);
-                    if (p.CurrentFileDone)
-                    {
-                        _file.Value = _file.MaxValue;
-                        _file.StopTask();
-                    }
+                    if (p.CurrentFileDone) _file.Value = _file.MaxValue;
+                }
+                // The sender hands data to the transport's buffer (tens of MB), so it reaches
+                // 100% before the receiver has everything. Say so instead of looking finished.
+                if (_role == PeerRole.Sender && !_waiting && p.BytesDone >= p.TotalBytes && p.FileIndex == p.FileCount && p.CurrentFileDone)
+                {
+                    _waiting = true;
+                    _total.Description = "[bold]Sent, waiting for the receiver to confirm[/]";
                 }
             }
         }
